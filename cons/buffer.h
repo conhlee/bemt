@@ -75,6 +75,10 @@ void BufferDestroy(ConsBuffer* buffer);
 // Resize a buffer. It's safe to pass in a uninitialized buffer.
 void BufferResize(ConsBuffer* buffer, u64 newSize);
 
+// Grow a buffer (increase it's size by growBy). Supports negative values.
+// It's safe to pass in a uninitialized buffer.
+void BufferGrow(ConsBuffer* buffer, s64 growBy);
+
 static inline void* BufferGetEnd(ConsBuffer* buffer) {
     if (buffer == (ConsBuffer*)0)
         return (void*)0;

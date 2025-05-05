@@ -73,6 +73,30 @@ void BufferResize(ConsBuffer* buffer, u64 newSize) {
     buffer->size = newSize;
 }
 
+void BufferGrow(ConsBuffer* buffer, s64 growBy) {
+    if (!buffer || growBy == 0)
+        return;
+
+    if (!buffer->data_void) {
+        BufferInit(buffer, growBy);
+        return;
+    }
+
+    s64 newSize = buffer->size + growBy;
+
+    if (newSize <= 0) {
+        BufferDestroy(buffer);
+        return;
+    }
+
+    buffer->data_void = realloc(buffer->data_void, newSize);
+    if (newSize > buffer->size) {
+        memset(buffer->data_u8 + buffer->size, 0, newSize - buffer->size);
+    }
+
+    buffer->size = newSize;
+}
+
 bool BufferViewCompare(ConsBufferView a, ConsBufferView b) {
     if (a.size != b.size)
         return false;
