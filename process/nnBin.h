@@ -80,7 +80,7 @@ typedef struct __attribute__((packed)) {
     u16 leftIndex; // Followed when bit is unset. Always followed on root node.
     u16 rightIndex; // Followed when bit is set.
 
-    u64 nameOffset; // Relocated offset to a NnString containing the name.
+    u64 namePtr; // Relocated offset to a NnString containing the name.
 } NnDicNode;
 _Static_assert(sizeof(NnDicNode) == 0x10, "sizeof NnDicNode is mismatched");
 

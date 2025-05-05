@@ -58,7 +58,7 @@ const NnDicNode* NnDicFind(void* baseData, const NnDic* dic, const char* key) {
             break;
     }
 
-    const NnString* nodeKey = (NnString*)((u8*)baseData + node->nameOffset);
+    const NnString* nodeKey = (NnString*)((u8*)baseData + node->namePtr);
     if (strncmp(nodeKey->str, key, nodeKey->len) == 0)
         return node;
 
