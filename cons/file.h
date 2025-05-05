@@ -18,4 +18,8 @@ int FileWriteMem(ConsBufferView view, const char* path);
 // Returns 0 on success, 1 on failure.
 int DirectoryCreateTree(const char* dirPath);
 
+// Get a list of all files in a directory (file paths), including subfiles.
+// Note: the strings contained in this list are dynamically allocated and must be freed.
+ConsList DirectoryGetAllFiles(const char* rootPath);
+
 #endif // CONS_FILE_H

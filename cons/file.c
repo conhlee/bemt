@@ -1,5 +1,9 @@
 #include "file.h"
 
+#include "linklist.h"
+
+#include "error.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -7,6 +11,8 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#include <dirent.h>
 
 #include <errno.h>
 
@@ -97,4 +103,57 @@ int DirectoryCreateTree(const char* _dirPath) {
 
     free(dirPath);
     return 0;
+}
+
+static int _IsDirectory(const char* path) {
+    struct stat statbuf;
+    if (stat(path, &statbuf) != 0)
+        return 0;
+    return S_ISDIR(statbuf.st_mode);
+}
+
+ConsList DirectoryGetAllFiles(const char* rootPath) {
+    ConsList fileList;
+    ListInit(&fileList, sizeof(char*), 128);
+
+    ConsLLNode* queue = NULL;
+    LinkListInsertTail(&queue, (u64)strdup(rootPath));
+
+    while (queue) {
+        ConsLLNode* currentNode = queue;
+        queue = queue->next;
+        if (queue != NULL)
+            queue->prev = NULL;
+
+        char* currentPath = (char*)currentNode->data;
+        LinkListDeleteNode(&currentNode, currentNode);
+
+        DIR* dir = opendir(currentPath);
+        if (dir == NULL) {
+            Warn("DirectoryGetAllFiles: opendir failed on path '%s'; skipping", currentPath);
+            free(currentPath);
+            continue;
+        }
+
+        struct dirent* entry;
+        while ((entry = readdir(dir)) != NULL) {
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                continue;
+
+            char fullPath[MAX_PATH];
+            snprintf(fullPath, MAX_PATH, "%s/%s", currentPath, entry->d_name);
+
+            if (_IsDirectory(fullPath)) {
+                LinkListInsertTail(&queue, (u64)strdup(fullPath));
+            } else {
+                char* fileCopy = strdup(fullPath);
+                ListAdd(&fileList, &fileCopy);
+            }
+        }
+
+        closedir(dir);
+        free(currentPath);
+    }
+
+    return fileList;
 }

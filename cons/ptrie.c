@@ -12,7 +12,7 @@
 #define NODE_NPOS ((u64)-1)
 
 ConsPtrieNode* _CreateNode(const char* key) {
-    ConsPtrieNode* node = (ConsPtrieNode*)malloc(sizeof(ConsPtrieNode));
+    ConsPtrieNode* node = malloc(sizeof(ConsPtrieNode));
 
     if (key != NULL)
         node->key = strdup(key);
@@ -37,7 +37,7 @@ void _DestroyNode(ConsPtrieNode* node) {
 
 void PtrieInit(ConsPtrie* trie) {
     trie->nodeCount = 0;
-    trie->root = (ConsPtrieNode*)malloc(sizeof(ConsPtrieNode));
+    trie->root = malloc(sizeof(ConsPtrieNode));
 
     trie->root->key = NULL;
     trie->root->refBit = REF_BIT_NPOS;

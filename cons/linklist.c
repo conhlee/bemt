@@ -19,7 +19,7 @@ ConsLLNode* LinkListNew(u64 length, u64 initData) {
 }
 
 ConsLLNode* LinkListNewNode(u64 data) {
-    ConsLLNode* node = (ConsLLNode*)malloc(sizeof(ConsLLNode));
+    ConsLLNode* node = malloc(sizeof(ConsLLNode));
     if (node == NULL)
         return NULL;
 
