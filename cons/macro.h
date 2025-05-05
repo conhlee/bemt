@@ -9,6 +9,9 @@
 #define ALIGN_DOWN_4(value) ( (value) & ~(4 - 1) )
 #define ALIGN_UP_4(value)   ( ((value) + 4 - 1) & ~(4 - 1) )
 
+#define ALIGN_DOWN_8(value) ( (value) & ~(8 - 1) )
+#define ALIGN_UP_8(value)   ( ((value) + 8 - 1) & ~(8 - 1) )
+
 #define ALIGN_DOWN_16(value) ( (value) & ~(16 - 1) )
 #define ALIGN_UP_16(value)   ( ((value) + 16 - 1) & ~(16 - 1) )
 
