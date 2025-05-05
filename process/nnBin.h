@@ -108,6 +108,7 @@ typedef struct __attribute__((packed)) {
     u8 pointersPerList;
     u8 pointerListSpacing; // Spacing between pointer lists, in bytes.
 } NnRelocEntry;
+_Static_assert(sizeof(NnRelocEntry) == 0x08, "sizeof NnRelocEntry is mismatched");
 
 typedef struct __attribute__((packed)) {
     u64 _dataAddress; // Address of this section's data, filled in at runtime.
@@ -116,6 +117,7 @@ typedef struct __attribute__((packed)) {
     u32 firstEntryIndex; // First entry that belongs to this section.
     u32 entryCount;
 } NnRelocSection;
+_Static_assert(sizeof(NnRelocSection) == 0x18, "sizeof NnRelocSection is mismatched");
 
 // Must be aligned to 8 bytes.
 typedef struct __attribute__((packed)) {
@@ -128,6 +130,7 @@ typedef struct __attribute__((packed)) {
     NnRelocSection sections[0];
     // NnRelocEntry entries[0]; // Entries follow the sections.
 } NnRelocTable;
+_Static_assert(sizeof(NnRelocTable) == 0x10, "sizeof NnRelocTable is mismatched");
 
 static inline const NnRelocEntry* NnRelocTableGetEntries(const NnRelocTable* table) {
     return (NnRelocEntry*)(table->sections + table->sectionCount);
