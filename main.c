@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
     if (strcasecmp(mode, "bea_extract") == 0) {
         printf("-- Extracting BEA --\n");
 
-        ConsBuffer buffer = LoadWholeFile(argv[2]);
+        ConsBuffer buffer = FileLoadMem(argv[2]);
         if (!BufferIsValid(&buffer))
             Panic("Failed to load BEA file");
 
@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
             char* lastSlash = strrchr(filePath, '/');
             if (lastSlash) {
                 *lastSlash = '\0';
-                if (CreateDirectories(filePath)) {
+                if (DirectoryCreateTree(filePath)) {
                     printf(" FAIL\n");
                     continue;
                 }
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
                 continue;
             }
 
-            int writeRes = WriteWholeFile(BUFFER_TO_VIEW(decompressedData), filePath);
+            int writeRes = FileWriteMem(BUFFER_TO_VIEW(decompressedData), filePath);
             BufferDestroy(&decompressedData);
 
             if (writeRes)
@@ -90,8 +90,8 @@ int main(int argc, char** argv) {
         BufferDestroy(&buffer);
     }
     else if (strcasecmp(mode, "bntx_test") == 0) {
-        ConsBuffer bufferTiled = LoadWholeFile("/Users/angelo/Downloads/128_bc3_tiled.bin");
-        ConsBuffer bufferLinear = LoadWholeFile("/Users/angelo/Downloads/128_bc3.bin");
+        ConsBuffer bufferTiled = FileLoadMem("/Users/angelo/Downloads/128_bc3_tiled.bin");
+        ConsBuffer bufferLinear = FileLoadMem("/Users/angelo/Downloads/128_bc3.bin");
 
         ConsBuffer buffer = deswizzle_block_linear(128 / 4, 128 / 4, 1, BUFFER_TO_VIEW(bufferTiled), 4, 16);
 
@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
     else if (strcasecmp(mode, "bntx_extract") == 0) {
         printf("-- Extracting BNTX --\n");
 
-        ConsBuffer buffer = LoadWholeFile(argv[2]);
+        ConsBuffer buffer = FileLoadMem(argv[2]);
         if (!BufferIsValid(&buffer))
             Panic("Failed to load BNTX file");
 

@@ -10,7 +10,9 @@
 
 #include <errno.h>
 
-ConsBuffer LoadWholeFile(const char* path) {
+#define MAX_PATH (4096)
+
+ConsBuffer FileLoadMem(const char* path) {
     ConsBuffer buffer = {0};
 
     if (path == NULL)
@@ -45,7 +47,7 @@ ConsBuffer LoadWholeFile(const char* path) {
     return buffer;
 }
 
-int WriteWholeFile(ConsBufferView view, const char* path) {
+int FileWriteMem(ConsBufferView view, const char* path) {
     if (path == NULL)
         return 1;
 
@@ -65,12 +67,12 @@ int WriteWholeFile(ConsBufferView view, const char* path) {
     return 0;
 }
 
-int CreateDirectories(const char* _dirPath) {
+int DirectoryCreateTree(const char* _dirPath) {
     if (_dirPath == NULL)
         return 1;
 
     u64 dirPathLen = strlen(_dirPath);
-    char* dirPath = (char*)malloc(dirPathLen + 1);
+    char* dirPath = malloc(dirPathLen + 1);
     memcpy(dirPath, _dirPath, dirPathLen + 1);
 
     if (dirPathLen > 0 && dirPath[dirPathLen - 1] == '/')
