@@ -11,6 +11,7 @@
 
 #define NN__DIC_MAGIC IDENTIFIER_TO_U32('_','D','I','C')
 #define NN__STR_MAGIC IDENTIFIER_TO_U32('_','S','T','R')
+#define NN__RLT_MAGIC IDENTIFIER_TO_U32('_','R','L','T')
 
 typedef struct __attribute__((packed)) {
     u32 identifier;
@@ -98,6 +99,38 @@ static inline u32 NnDicNodeGetIndex(const NnDic* dic, const NnDicNode* node) {
     if (dic == NULL || node == NULL)
         return 0;
     return node - (dic->nodes + 1);
+}
+
+// Pointers with a value of zero are not relocated.
+typedef struct __attribute__((packed)) {
+    u32 offsetToPointerList; // Relative to the start of the file.
+    u16 pointerListCount;
+    u8 pointersPerList;
+    u8 pointerListSpacing; // Spacing between pointer lists, in bytes.
+} NnRelocEntry;
+
+typedef struct __attribute__((packed)) {
+    u64 _dataAddress; // Address of this section's data, filled in at runtime.
+    u32 dataOffset;
+    u32 dataSize; // Not actually used in the relocation process.
+    u32 firstEntryIndex; // First entry that belongs to this section.
+    u32 entryCount;
+} NnRelocSection;
+
+// Must be aligned to 8 bytes.
+typedef struct __attribute__((packed)) {
+    u32 signature; // Compare to NN__RLT_MAGIC.
+
+    u32 selfOffset; // Offset to this table.
+    u32 sectionCount; 
+    u32 _reserved; // TODO: this might actually be padding
+
+    NnRelocSection sections[0];
+    // NnRelocEntry entries[0]; // Entries follow the sections.
+} NnRelocTable;
+
+static inline const NnRelocEntry* NnRelocTableGetEntries(const NnRelocTable* table) {
+    return (NnRelocEntry*)(table->sections + table->sectionCount);
 }
 
 #endif // NN_BIN_H
