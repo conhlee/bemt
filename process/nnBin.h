@@ -1,0 +1,90 @@
+#ifndef NN_BIN_H
+#define NN_BIN_H
+
+#include "../cons/type.h"
+#include "../cons/macro.h"
+
+#include <stdlib.h>
+
+#define NN_BOM_FOREIGN (0xFFFE)
+#define NN_BOM_NATIVE (0xFEFF)
+
+#define NN__DIC_MAGIC IDENTIFIER_TO_U32('_','D','I','C')
+
+typedef struct __attribute((packed)) {
+    u32 identifier;
+    u32 signature;
+
+    u8  versionBugfix;
+    u8  versionMinor;
+    u16 versionMajor;
+
+    u16 byteOrderMark; // Compare to NN_BOM_NATIVE and NN_BOM_FOREIGN.
+
+    u8 alignmentShift; // Alignment is 1 << alignmentShift.
+    u8 targetAddrSize; // In bits; usually 64. Might be unused.
+
+    u32 filenameOffset; // Offset to a null-terminated string containing the filename. Might be unused.
+
+    u16 flags; // Bit 0: relocated
+
+    u16 firstBlockOffset;
+    u32 relocationTableOffset;
+
+    u32 fileSize; // Might be inaccurate.
+} NnFileHeader;
+_Static_assert(sizeof(NnFileHeader) == 0x20, "sizeof NnFileHeader is mismatched");
+
+// Returns true if the version is matching, false if not. Accounts for foreign endianness.
+bool NnCheckFileHeaderVer(
+    const NnFileHeader* fileHeader, u16 versionMajor, u8 versionMinor, u8 versionBugfix
+);
+
+typedef struct __attribute((packed)) {
+    u32 signature;
+
+    u32 offsetToNextBlock; // Relative to the start of this block. If zero, then no block follows.
+    u32 blockSize;
+    u32 _reserved;
+} NnBlockHeader;
+_Static_assert(sizeof(NnBlockHeader) == 0x10, "sizeof NnBlockHeader is mismatched");
+
+static inline NnBlockHeader* NnGetNextBlock(NnBlockHeader* block) {
+    if (block == NULL || block->offsetToNextBlock == 0)
+        return NULL;
+    else
+        return (NnBlockHeader*)((u8*)block + block->offsetToNextBlock);
+}
+
+typedef struct __attribute((packed)) {
+    u16 len;
+    char str[0]; // Always null-terminated.
+} NnString;
+_Static_assert(sizeof(NnString) == 0x02, "sizeof NnString is mismatched");
+
+typedef struct __attribute((packed)) {
+    s32 refBitPos; // Root node always has the value -1 (npos).
+    u16 leftIndex; // Followed when bit is unset. Always followed on root node.
+    u16 rightIndex; // Followed when bit is set.
+
+    u64 nameOffset; // Relocated offset to a NnString containing the name.
+} NnDicNode;
+_Static_assert(sizeof(NnDicNode) == 0x10, "sizeof NnDicNode is mismatched");
+
+typedef struct __attribute((packed)) {
+    u32 signature; // Compare to NN__DIC_MAGIC.
+
+    s32 nodeCount; // Exclusive of root node.
+    NnDicNode nodes[1];
+} NnDic;
+_Static_assert(sizeof(NnDic) == 0x18, "sizeof NnDic is mismatched");
+
+const NnDicNode* NnDicFind(void* baseData, const NnDic* dic, const char* key);
+
+static inline u32 NnDicNodeGetIndex(const NnDic* dic, const NnDicNode* node) {
+    if (dic == NULL || node == NULL)
+        return 0;
+    return node - (dic->nodes + 1);
+}
+
+#endif // NN_BIN_H
