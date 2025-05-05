@@ -5,6 +5,8 @@
 
 #include "../cons/buffer.h"
 
+// Ported from https://github.com/ScanMountGoat/tegra_swizzle
+
 ConsBuffer deswizzle_block_linear(
     u32 width, u32 height, u32 depth,
     ConsBufferView source, u32 blockHeight, u32 bytesPerPixel

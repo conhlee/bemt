@@ -4,6 +4,8 @@
 
 #include <string.h>
 
+// Ported from https://github.com/ScanMountGoat/tegra_swizzle
+
 #define GOB_WIDTH_IN_BYTES (64)
 #define GOB_HEIGHT_IN_BYTES (8)
 #define GOB_SIZE_IN_BYTES (GOB_WIDTH_IN_BYTES * GOB_HEIGHT_IN_BYTES)
