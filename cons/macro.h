@@ -3,6 +3,9 @@
 
 // Alignment
 
+#define ALIGN_DOWN_2(value) ( (value) & ~(2 - 1) )
+#define ALIGN_UP_2(value)   ( ((value) + 2 - 1) & ~(2 - 1) )
+
 #define ALIGN_DOWN_4(value) ( (value) & ~(4 - 1) )
 #define ALIGN_UP_4(value)   ( ((value) + 4 - 1) & ~(4 - 1) )
 
