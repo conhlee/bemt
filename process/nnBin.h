@@ -10,6 +10,7 @@
 #define NN_BOM_NATIVE (0xFEFF)
 
 #define NN__DIC_MAGIC IDENTIFIER_TO_U32('_','D','I','C')
+#define NN__STR_MAGIC IDENTIFIER_TO_U32('_','S','T','R')
 
 typedef struct __attribute((packed)) {
     u32 identifier;
@@ -58,9 +59,24 @@ static inline NnBlockHeader* NnGetNextBlock(NnBlockHeader* block) {
 
 typedef struct __attribute((packed)) {
     u16 len;
-    char str[0]; // Always null-terminated.
+    char str[0]; // Must be null-terminated.
 } NnString;
 _Static_assert(sizeof(NnString) == 0x02, "sizeof NnString is mismatched");
+
+typedef struct __attribute((packed)) {
+    u32 signature; // Compare to NN__STR_MAGIC.
+
+    u32 _unused; // Would be offsetToNextBlock, but is always zero.
+    u32 poolSize;
+    u32 _reserved;
+
+    u32 stringCount;
+
+    // The first string. All strings are aligned by 2 to ensure an aligned
+    // 16-bit read on the length field.
+    NnString firstString[0];
+} NnStringPool;
+_Static_assert(sizeof(NnStringPool) == 0x14, "sizeof NnStringPool is mismatched");
 
 typedef struct __attribute((packed)) {
     s32 refBitPos; // Root node always has the value -1 (npos).
