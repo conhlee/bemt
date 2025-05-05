@@ -6,6 +6,8 @@
 *.opus
 *.lua
 *.webm
+*.bntx
+*.ftxb
 
 *.txt
 *.png
