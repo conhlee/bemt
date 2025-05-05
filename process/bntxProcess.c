@@ -12,7 +12,7 @@
 #define NX___ID IDENTIFIER_TO_U32('N','X',' ',' ')
 #define BRTI_ID IDENTIFIER_TO_U32('B','R','T','I')
 
-typedef struct __attribute((packed)) {
+typedef struct __attribute__((packed)) {
     u32 platformId; // Compare to NX___ID.
 
     u32 textureCount;
@@ -26,7 +26,7 @@ typedef struct __attribute((packed)) {
     u64 _unk4C;
 } BntxGlobalInfo;
 
-typedef struct __attribute((packed)) {
+typedef struct __attribute__((packed)) {
     NnFileHeader _00; // Identifier is BNTX_ID, signature is zero.
     BntxGlobalInfo _20;
 } BntxFileHeader;
@@ -63,7 +63,7 @@ typedef enum {
     DIMENSION_CUBE_MAP = 3
 } BntxDimension;
 
-typedef struct __attribute((packed)) {
+typedef struct __attribute__((packed)) {
     NnBlockHeader _00; // Identifier is BRTI_ID.
 
     u8 flags;

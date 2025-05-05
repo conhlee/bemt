@@ -9,7 +9,7 @@
 #define SCNE_ID IDENTIFIER_TO_U32('S','C','N','E')
 #define ASST_ID IDENTIFIER_TO_U32('A','S','S','T')
 
-typedef struct __attribute((packed)) {
+typedef struct __attribute__((packed)) {
     NnFileHeader _00; // Identifier is SCNE_ID, signature is zero.
 
     u16 assetCount; // 0x20
@@ -26,7 +26,7 @@ typedef struct __attribute((packed)) {
 } BeaFileHeader;
 _Static_assert(sizeof(BeaFileHeader) == 0x48, "sizeof BeaFileHeader is mismatched");
 
-typedef struct __attribute((packed)) {
+typedef struct __attribute__((packed)) {
     NnBlockHeader _00; // Identifier is ASST_ID.
 
     u8 compressionType; // See BeaCompressionType.

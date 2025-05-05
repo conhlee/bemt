@@ -12,7 +12,7 @@
 #define NN__DIC_MAGIC IDENTIFIER_TO_U32('_','D','I','C')
 #define NN__STR_MAGIC IDENTIFIER_TO_U32('_','S','T','R')
 
-typedef struct __attribute((packed)) {
+typedef struct __attribute__((packed)) {
     u32 identifier;
     u32 signature;
 
@@ -41,7 +41,7 @@ bool NnCheckFileHeaderVer(
     const NnFileHeader* fileHeader, u16 versionMajor, u8 versionMinor, u8 versionBugfix
 );
 
-typedef struct __attribute((packed)) {
+typedef struct __attribute__((packed)) {
     u32 signature;
 
     u32 offsetToNextBlock; // Relative to the start of this block. If zero, then no block follows.
@@ -57,18 +57,15 @@ static inline NnBlockHeader* NnGetNextBlock(NnBlockHeader* block) {
         return (NnBlockHeader*)((u8*)block + block->offsetToNextBlock);
 }
 
-typedef struct __attribute((packed)) {
+typedef struct __attribute__((packed)) {
     u16 len;
     char str[0]; // Must be null-terminated.
 } NnString;
 _Static_assert(sizeof(NnString) == 0x02, "sizeof NnString is mismatched");
 
-typedef struct __attribute((packed)) {
-    u32 signature; // Compare to NN__STR_MAGIC.
-
-    u32 _unused; // Would be offsetToNextBlock, but is always zero.
-    u32 poolSize;
-    u32 _reserved;
+typedef struct __attribute__((packed)) {
+    // Why is the string pool is considered a block ..??
+    NnBlockHeader _00; // Compare signature to NN__STR_MAGIC.
 
     u32 stringCount;
 
@@ -78,7 +75,7 @@ typedef struct __attribute((packed)) {
 } NnStringPool;
 _Static_assert(sizeof(NnStringPool) == 0x14, "sizeof NnStringPool is mismatched");
 
-typedef struct __attribute((packed)) {
+typedef struct __attribute__((packed)) {
     s32 refBitPos; // Root node always has the value -1 (npos).
     u16 leftIndex; // Followed when bit is unset. Always followed on root node.
     u16 rightIndex; // Followed when bit is set.
@@ -87,7 +84,7 @@ typedef struct __attribute((packed)) {
 } NnDicNode;
 _Static_assert(sizeof(NnDicNode) == 0x10, "sizeof NnDicNode is mismatched");
 
-typedef struct __attribute((packed)) {
+typedef struct __attribute__((packed)) {
     u32 signature; // Compare to NN__DIC_MAGIC.
 
     s32 nodeCount; // Exclusive of root node.
