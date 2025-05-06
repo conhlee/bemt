@@ -42,10 +42,10 @@ const NnDicNode* NnDicFind(void* baseData, const NnDic* dic, const char* key) {
     const u32 keyLength = strlen(key);
     const u32 totalNodes = dic->nodeCount + 1;
 
-    const NnDicNode* node = dic->nodes + dic->nodes[0].leftIndex;
-    const NnDicNode* prevNode = node;
+    const NnDicNode* prevNode = dic->nodes;
+    const NnDicNode* node = dic->nodes + prevNode->leftIndex;
 
-    while (1) {
+    while (prevNode->refBitPos < node->refBitPos) {
         prevNode = node;
 
         u32 bit = _ExtractRefBit(key, keyLength, node->refBitPos);
@@ -54,13 +54,13 @@ const NnDicNode* NnDicFind(void* baseData, const NnDic* dic, const char* key) {
             return NULL;
 
         node = dic->nodes + nextIndex;
-        if (node->refBitPos <= prevNode->refBitPos)
-            break;
     }
 
     const NnString* nodeKey = (NnString*)((u8*)baseData + node->namePtr);
-    if (strncmp(nodeKey->str, key, nodeKey->len) == 0)
-        return node;
+    if (nodeKey->len != keyLength)
+        return NULL;
+    if (strncmp(nodeKey->str, key, nodeKey->len) != 0)
+        return NULL;
 
-    return NULL;
+    return node;
 }
