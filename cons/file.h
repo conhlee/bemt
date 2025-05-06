@@ -22,4 +22,8 @@ int DirectoryCreateTree(const char* dirPath);
 // Note: the strings contained in this list are dynamically allocated and must be freed.
 ConsList DirectoryGetAllFiles(const char* rootPath);
 
+// Get the name of a directory by it's path.
+// Returns dynamically allocated string containing directory name on success, NULL on failure.
+char* DirectoryGetName(const char* dirPath);
+
 #endif // CONS_FILE_H

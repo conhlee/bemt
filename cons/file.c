@@ -14,6 +14,8 @@
 
 #include <dirent.h>
 
+#include <libgen.h>
+
 #include <errno.h>
 
 #define MAX_PATH (4096)
@@ -156,4 +158,18 @@ ConsList DirectoryGetAllFiles(const char* rootPath) {
     }
 
     return fileList;
+}
+
+char* DirectoryGetName(const char* dirPath) {
+    char resolvedPath[MAX_PATH];
+    if (realpath(dirPath, resolvedPath) == NULL) {
+        Warn("DirectoryGetName: realpath failed ..");
+        return NULL;
+    }
+
+    char pathCopy[MAX_PATH];
+    strncpy(pathCopy, resolvedPath, MAX_PATH - 1);
+    pathCopy[MAX_PATH - 1] = '\0';
+
+    return strdup(basename(pathCopy));
 }
