@@ -22,7 +22,7 @@ void usage(char* arg0) {
         "usage: %s [mode] [input_files_or_directories] <output_file>\n"
         "\n"
         "modes:\n"
-        "     bea_extract      Extract all files from a BEA archive.\n"
+        "     bea_unpack       Extract all assets from a BEA archive.\n"
         "     bea_pack         Pack the input directory into a BEA archive.\n"
         "\n"
         "     bntx_extract     Extract all textures from a BNTX texture group.\n",
@@ -38,8 +38,8 @@ int main(int argc, char** argv) {
 
     const char* mode = argv[1];
 
-    if (strcasecmp(mode, "bea_extract") == 0) {
-        printf("-- Extracting BEA --\n");
+    if (strcasecmp(mode, "bea_unpack") == 0) {
+        printf("-- Unpacking BEA --\n");
 
         ConsBuffer buffer = FileLoadMem(argv[2]);
         if (!BufferIsValid(&buffer))
@@ -100,7 +100,11 @@ int main(int argc, char** argv) {
             rootDirPathEnd--;
         }
 
-        printf("Getting files..\n");
+        char* archiveName = DirectoryGetName(rootDirPath);
+
+        printf("-- Creating archive '%s' --\n\n", archiveName);
+
+        printf("Getting files:\n");
         fflush(stdout);
 
         ConsList fileList = DirectoryGetAllFiles(rootDirPath);
@@ -131,16 +135,18 @@ int main(int argc, char** argv) {
         printf("Serializing archive..");
         fflush(stdout);
 
-        ConsBuffer beaBuffer = BeaBuild(buildAssets, fileList.elementCount, "Script~System");
+        ConsBuffer beaBuffer = BeaBuild(buildAssets, fileList.elementCount, archiveName);
 
-        printf("OK\nWriting file to path '%s'..", argv[3]);
+        free(archiveName);
+
+        printf(" OK\nWriting file to path '%s'..", argv[3]);
         fflush(stdout);
 
         if (FileWriteMem(BUFFER_TO_VIEW(beaBuffer), argv[3])) {
             Panic("Failed to write archive to disk!");
         }
 
-        printf("OK\n");
+        printf(" OK\n");
 
         free(rootDirPath);
 
