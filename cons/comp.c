@@ -1,5 +1,7 @@
 #include "comp.h"
 
+#include "error.h"
+
 #include <stdlib.h>
 
 #include <zlib.h>

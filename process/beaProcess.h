@@ -11,27 +11,36 @@ typedef enum BeaCompressionType {
     BEA_COMPRESSION_TYPE_ZSTD = 2,
 } BeaCompressionType;
 
-void BeaPreprocess(ConsBuffer beaData);
+void BeaPreprocess(ConsBufferView beaData);
 
 // Ownership belongs to beaData.
-NnString* BeaGetArchiveName(ConsBuffer beaData);
+NnString* BeaGetArchiveName(ConsBufferView beaData);
 
-u32 BeaGetAssetCount(ConsBuffer beaData);
+u32 BeaGetAssetCount(ConsBufferView beaData);
 
 // Returns <0 if asset is not found.
-s64 BeaFindAssetIndex(ConsBuffer beaData, const char* filename);
+s64 BeaFindAssetIndex(ConsBufferView beaData, const char* filename);
 
 // Ownership belongs to beaData.
-NnString* BeaGetAssetFilename(ConsBuffer beaData, u32 assetIndex);
+NnString* BeaGetAssetFilename(ConsBufferView beaData, u32 assetIndex);
 
-BeaCompressionType BeaGetAssetCompressionType(ConsBuffer beaData, u32 assetIndex);
-u32 BeaGetAssetAlignment(ConsBuffer beaData, u32 assetIndex);
-u32 BeaGetAssetCompressedSize(ConsBuffer beaData, u32 assetIndex);
-u32 BeaGetAssetDecompressedSize(ConsBuffer beaData, u32 assetIndex);
+BeaCompressionType BeaGetAssetCompressionType(ConsBufferView beaData, u32 assetIndex);
+u32 BeaGetAssetAlignment(ConsBufferView beaData, u32 assetIndex);
+u32 BeaGetAssetCompressedSize(ConsBufferView beaData, u32 assetIndex);
+u32 BeaGetAssetDecompressedSize(ConsBufferView beaData, u32 assetIndex);
 
 // Ownership belongs to beaData.
-ConsBufferView BeaGetCompressedData(ConsBuffer beaData, u32 assetIndex);
+ConsBufferView BeaGetCompressedData(ConsBufferView beaData, u32 assetIndex);
 // Ownership belongs to caller.
-ConsBuffer BeaGetDecompressedData(ConsBuffer beaData, u32 assetIndex);
+ConsBuffer BeaGetDecompressedData(ConsBufferView beaData, u32 assetIndex);
+
+typedef struct BeaBuildAsset {
+    const char* name; // Not owned by this structure.
+    unsigned alignmentShift; // Alignment is 1 << alignmentShift.
+    ConsBufferView dataView;
+    BeaCompressionType compressionType;
+} BeaBuildAsset;
+
+ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* archiveName);
 
 #endif

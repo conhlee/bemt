@@ -44,14 +44,15 @@ int main(int argc, char** argv) {
         ConsBuffer buffer = FileLoadMem(argv[2]);
         if (!BufferIsValid(&buffer))
             Panic("Failed to load BEA file");
+        ConsBufferView beaView = BUFFER_TO_VIEW(buffer);
 
-        BeaPreprocess(buffer);
+        BeaPreprocess(beaView);
 
-        const NnString* archiveName = BeaGetArchiveName(buffer);
+        const NnString* archiveName = BeaGetArchiveName(beaView);
 
-        u32 assetCount = BeaGetAssetCount(buffer);
+        u32 assetCount = BeaGetAssetCount(beaView);
         for (u32 i = 0; i < assetCount; i++) {
-            const NnString* filename = BeaGetAssetFilename(buffer, i);
+            const NnString* filename = BeaGetAssetFilename(beaView, i);
 
             printf("Extracting: %.*s ..", (int)filename->len, filename->str);
             fflush(stdout);
@@ -66,15 +67,15 @@ int main(int argc, char** argv) {
             if (lastSlash) {
                 *lastSlash = '\0';
                 if (DirectoryCreateTree(filePath)) {
-                    printf(" FAIL\n");
+                    printf(" DIR CREATE FAIL\n");
                     continue;
                 }
                 *lastSlash = '/';
             }
 
-            ConsBuffer decompressedData = BeaGetDecompressedData(buffer, i);
+            ConsBuffer decompressedData = BeaGetDecompressedData(beaView, i);
             if (!BufferIsValid(&decompressedData)) {
-                printf(" FAIL\n");
+                printf(" DECOMPRESS FAIL\n");
                 continue;
             }
 
@@ -88,6 +89,66 @@ int main(int argc, char** argv) {
         }
 
         BufferDestroy(&buffer);
+    }
+    else if (strcasecmp(mode, "bea_pack") == 0) {          
+        char* rootDirPath = strdup(argv[2]);
+
+        // Remove trailing slashes.
+        char* rootDirPathEnd = rootDirPath + strlen(rootDirPath) - 1;
+        while (rootDirPathEnd > rootDirPath && *rootDirPathEnd == '/') {
+            *rootDirPathEnd = '\0';
+            rootDirPathEnd--;
+        }
+
+        printf("Getting files..\n");
+        fflush(stdout);
+
+        ConsList fileList = DirectoryGetAllFiles(rootDirPath);
+
+        if (ListIsEmpty(&fileList)) {
+            Panic("Failed to open directory at path '%s'!", argv[2]);
+        }
+
+        const u64 rootDirPathLen = strlen(rootDirPath);
+
+        BeaBuildAsset* buildAssets = malloc(sizeof(BeaBuildAsset) * fileList.elementCount);
+        for (u32 i = 0; i < fileList.elementCount; i++) {
+            char* filePath = *(char**)ListGet(&fileList, i);
+
+            buildAssets[i].name = filePath + rootDirPathLen + 1;
+            buildAssets[i].compressionType = BEA_COMPRESSION_TYPE_ZSTD;
+            buildAssets[i].alignmentShift = 8; // 256byte alignment by default.
+            
+            printf("    - %s\n", buildAssets[i].name);
+
+            // This is a little iffy ..
+            buildAssets[i].dataView = BUFFER_TO_VIEW(FileLoadMem(filePath));
+            if (!BufferViewIsValid(&buildAssets[i].dataView)) {
+                Panic("Failed to open file at path '%s'!", filePath);
+            }
+        }
+
+        printf("Serializing archive..");
+        fflush(stdout);
+
+        ConsBuffer beaBuffer = BeaBuild(buildAssets, fileList.elementCount, "Script~System");
+
+        printf("OK\nWriting file to path '%s'..", argv[3]);
+        fflush(stdout);
+
+        if (FileWriteMem(BUFFER_TO_VIEW(beaBuffer), argv[3])) {
+            Panic("Failed to write archive to disk!");
+        }
+
+        printf("OK\n");
+
+        free(rootDirPath);
+
+        for (unsigned i = 0; i < fileList.elementCount; i++) {
+            BufferDestroy(&buildAssets[i].dataView.as_buffer);
+            free(*(char**)ListGet(&fileList, i));
+        }
+        ListDestroy(&fileList);
     }
     else if (strcasecmp(mode, "bntx_test") == 0) {
         ConsBuffer bufferTiled = FileLoadMem("/Users/angelo/Downloads/128_bc3_tiled.bin");

@@ -18,7 +18,7 @@ _Static_assert(
     "through a register on modern systems"
 );
 
-static inline bool BufferIsValid(ConsBuffer* buffer) {
+static inline bool BufferIsValid(const ConsBuffer* buffer) {
     if (buffer == (ConsBuffer*)0)
         return false;
     return buffer->data_void != ((void*)0) && buffer->size > 0;
@@ -41,7 +41,7 @@ _Static_assert(
     "ConsBufferView & ConsBuffer must share the same structure"
 );
 
-static inline bool BufferViewIsValid(ConsBufferView* view) {
+static inline bool BufferViewIsValid(const ConsBufferView* view) {
     return BufferIsValid(&view->as_buffer);
 }
 
