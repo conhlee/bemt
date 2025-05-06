@@ -119,7 +119,7 @@ void BntxPreprocess(ConsBuffer bntxData) {
     if (fileHeader->_00.byteOrderMark != NN_BOM_NATIVE)
         Panic("BntxPreprocess: invalid byte order mark");
 
-    if (!NnCheckFileHeaderVer(&fileHeader->_00, 4,1,0))
+    if (!NnFileHeaderCheckVer(&fileHeader->_00, 4,1,0))
         Panic("BntxPreprocess: unsupported version (expected v4.1.0)");
 
     if (fileHeader->_20.platformId != NX___ID)

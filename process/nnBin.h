@@ -38,7 +38,7 @@ typedef struct __attribute__((packed)) {
 _Static_assert(sizeof(NnFileHeader) == 0x20, "sizeof NnFileHeader is mismatched");
 
 // Returns true if the version is matching, false if not. Accounts for foreign endianness.
-bool NnCheckFileHeaderVer(
+bool NnFileHeaderCheckVer(
     const NnFileHeader* fileHeader, u16 versionMajor, u8 versionMinor, u8 versionBugfix
 );
 
@@ -51,7 +51,7 @@ typedef struct __attribute__((packed)) {
 } NnBlockHeader;
 _Static_assert(sizeof(NnBlockHeader) == 0x10, "sizeof NnBlockHeader is mismatched");
 
-static inline NnBlockHeader* NnGetNextBlock(NnBlockHeader* block) {
+static inline NnBlockHeader* NnBlockGetNext(NnBlockHeader* block) {
     if (block == NULL || block->offsetToNextBlock == 0)
         return NULL;
     else

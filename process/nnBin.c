@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-bool NnCheckFileHeaderVer(
+bool NnFileHeaderCheckVer(
     const NnFileHeader* fileHeader, u16 versionMajor, u8 versionMinor, u8 versionBugfix
 ) {
     if (fileHeader == NULL)

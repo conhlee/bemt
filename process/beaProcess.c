@@ -61,7 +61,7 @@ void BeaPreprocess(ConsBufferView beaData) {
     if (fileHeader->_00.byteOrderMark != NN_BOM_NATIVE)
         Panic("BeaPreprocess: invalid byte order mark");
 
-    if (!NnCheckFileHeaderVer(&fileHeader->_00, 1,1,0))
+    if (!NnFileHeaderCheckVer(&fileHeader->_00, 1,1,0))
         Panic("BeaPreprocess: unsupported version (expected v1.1.0)");
 }
 
