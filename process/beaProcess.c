@@ -43,7 +43,7 @@ typedef struct __attribute__((packed)) {
     u32 decompressedDataSize;
     u32 _reserved; // TODO: is this a reserved field, or padding?
 
-    u64 dataPtr; // Relocated offset to the data.
+    u64 dataOffset; // Non-relocated offset to the data.
     u64 filenamePtr; // Relocated offset to a NnString containing the filename.
 } BeaAssetBlock;
 _Static_assert(sizeof(BeaAssetBlock) == 0x30, "sizeof BeaAssetBlock is mismatched");
@@ -143,7 +143,7 @@ ConsBufferView BeaGetCompressedData(ConsBufferView beaData, u32 assetIndex) {
         return (ConsBufferView){ 0 };
 
     ConsBufferView view;
-    view.data_u8 = beaData.data_u8 + asset->dataPtr;
+    view.data_u8 = beaData.data_u8 + asset->dataOffset;
     view.size = asset->dataSize;
 
     return view;
@@ -157,7 +157,7 @@ ConsBuffer BeaGetDecompressedData(ConsBufferView beaData, u32 assetIndex) {
     ConsBuffer buffer;
 
     ConsBufferView dataView;
-    dataView.data_u8 = beaData.data_u8 + asset->dataPtr;
+    dataView.data_u8 = beaData.data_u8 + asset->dataOffset;
     dataView.size = asset->dataSize;
 
     switch ((BeaCompressionType)asset->compressionType) {
@@ -234,9 +234,12 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
     u64 archiveNameOffset = stringPoolSize; // Offset of string pool is added later.
     stringPoolSize += ALIGN_UP_2(sizeof(NnString) + strlen(archiveName) + 1); // Archive name.
 
-    // There's two in the file header right out of the gate (2 consecutive fields + 1 field).
-    u64 relocationCount = 2;
-    relocationCount += 1 * assetCount; // 1 for every asset block (2 consecutive fields).
+    // BEA relocations are weird because for some reason Nintendo opted to manually relocate
+    // only some fields; the selection is arbitrary
+
+    // There's three in the file header right out of the gate (assetPointersPtr, dicPtr, and archiveNamePtr).
+    u64 relocationCount = 3;
+    relocationCount += 1 * assetCount; // 1 for every asset block (namePtr, not dataPtr for some reason).
 
     ConsPtrie dicTrie;
     PtrieInit(&dicTrie);
@@ -259,9 +262,12 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
         PtrieSwapFlatNode(&dicTrieFlat, i + 1, (found - dicTrieFlat.nodes));
     }
 
-    relocationCount += 1 * (1 + dicTrieFlat.nodeCount); // 1 for every dictionary node.
+    relocationCount += 1 * (1 + dicTrieFlat.nodeCount); // 1 for every dictionary node (namePtr).
 
     u64 binSize = sizeof(BeaFileHeader);
+
+    const u64 assetBlockPointersOffset = binSize;
+    relocationCount += 1 * assetCount; // 1 for every asset block pointer.
 
     binSize += 8 * assetCount; // Asset block pointers.
     binSize += 40 * assetCount; // Unknown zeroed 40 bytes per asset?
@@ -292,13 +298,13 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
 
     const u64 reflectedFileSize = binSize - 8;
 
-    binSize = ALIGN_UP_8(binSize);
+    binSize = ALIGN_UP_32(binSize);
     const u64 dataStartOffset = binSize;
 
     // Asset data.
     for (u32 i = 0; i < assetCount; i++) {
         ConsBuffer* compressedData = ListGet(&compressedDataList, i);
-        binSize += ALIGN_UP_8(compressedData->size);
+        binSize += ALIGN_UP_32(compressedData->size);
     }
 
     ConsBuffer beaBuffer;
@@ -315,7 +321,7 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
     fileHeader->_00.versionMajor = 1;
 
     fileHeader->_00.byteOrderMark = NN_BOM_NATIVE;
-    fileHeader->_00.alignmentShift = 3; // 1 << 3 = 16 bytes.
+    fileHeader->_00.alignmentShift = 4; // 1 << 4 = 32 bytes.
     fileHeader->_00.targetAddrSize = 0; // Default to 64.
 
     fileHeader->_00.filenameOffset = 0x00000000; // BEA doesn't use this field.
@@ -332,16 +338,14 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
     fileHeader->_unk22 = 0x0000;
     fileHeader->_unk24 = 0x00000000;
 
-    // Asset block pointers directly follow the file header.
-    fileHeader->assetPointersPtr = sizeof(BeaFileHeader);
-
+    fileHeader->assetPointersPtr = assetBlockPointersOffset;
     fileHeader->dicPtr = dictionaryOffset;
 
     fileHeader->_unk38 = 0x0000000000000000;
 
     fileHeader->archiveNamePtr = archiveNameOffset;
 
-    u64* assetPointers = (u64*)(fileHeader + 1);
+    u64* assetPointers = (u64*)(beaBuffer.data_u8 + assetBlockPointersOffset);
     for (u32 i = 0; i < assetCount; i++)
         assetPointers[i] = firstBlockOffset + (sizeof(BeaAssetBlock) * i);
 
@@ -370,8 +374,8 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
         // Move asset data.
         memcpy(beaBuffer.data_u8 + nextDataOffset, compressedData->data_void, compressedData->size);
 
-        assetBlock->dataPtr = nextDataOffset;
-        nextDataOffset += ALIGN_UP_8(compressedData->size);
+        assetBlock->dataOffset = nextDataOffset;
+        nextDataOffset += ALIGN_UP_32(compressedData->size);
 
         BufferDestroy(compressedData);
 
@@ -465,10 +469,18 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
 
     // First up is the file header.
 
-    // assetPointersPtr, dicPtr
+    // assetPointersPtr
     curRelocEntry->offsetToPointerList = offsetof(BeaFileHeader, assetPointersPtr);
     curRelocEntry->pointerListCount = 1;
-    curRelocEntry->pointersPerList = 2;
+    curRelocEntry->pointersPerList = 1;
+    curRelocEntry->pointerListSpacing = 0;
+
+    curRelocEntry++;
+
+    // dicPtr
+    curRelocEntry->offsetToPointerList = offsetof(BeaFileHeader, dicPtr);
+    curRelocEntry->pointerListCount = 1;
+    curRelocEntry->pointersPerList = 1;
     curRelocEntry->pointerListSpacing = 0;
 
     curRelocEntry++;
@@ -481,11 +493,21 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
 
     curRelocEntry++;
 
+    // The asset block pointers..
+    for (u32 i = 0; i < assetCount; i++) {
+        curRelocEntry->offsetToPointerList = assetBlockPointersOffset + (sizeof(u64) * i);
+        curRelocEntry->pointerListCount = 1;
+        curRelocEntry->pointersPerList = 1;
+        curRelocEntry->pointerListSpacing = 0;
+
+        curRelocEntry++;
+    }
+
     // The dictionary nodes..
-    u64 nodesOffset = dictionaryOffset + offsetof(NnDic, nodes);
+    u64 dicNodesOffset = dictionaryOffset + offsetof(NnDic, nodes);
     for (u32 i = 0; i < dic->nodeCount + 1; i++) {
         // namePtr
-        curRelocEntry->offsetToPointerList = nodesOffset + (sizeof(NnDicNode) * i) + offsetof(NnDicNode, namePtr);
+        curRelocEntry->offsetToPointerList = dicNodesOffset + (sizeof(NnDicNode) * i) + offsetof(NnDicNode, namePtr);
         curRelocEntry->pointerListCount = 1;
         curRelocEntry->pointersPerList = 1;
         curRelocEntry->pointerListSpacing = 0;
@@ -495,10 +517,10 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
 
     // Finally, the asset blocks.
     for (u32 i = 0; i < assetCount; i++) {
-        // dataPtr, filenamePtr
-        curRelocEntry->offsetToPointerList = assetPointers[i] + offsetof(BeaAssetBlock, dataPtr);
+        // filenamePtr
+        curRelocEntry->offsetToPointerList = assetPointers[i] + offsetof(BeaAssetBlock, filenamePtr);
         curRelocEntry->pointerListCount = 1;
-        curRelocEntry->pointersPerList = 2;
+        curRelocEntry->pointersPerList = 1;
         curRelocEntry->pointerListSpacing = 0;
 
         curRelocEntry++;
