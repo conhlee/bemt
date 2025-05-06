@@ -179,6 +179,8 @@ ConsBuffer BeaGetDecompressedData(ConsBufferView beaData, u32 assetIndex) {
     return buffer;
 }
 
+// #define BEA_BUILD_ENABLE_DIC_TEST
+
 ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* archiveName) {
     if (assets == NULL)
         Panic("BeaBuild: assets is NULL");
@@ -407,6 +409,22 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
 
     // We don't need the flat trie anymore, we can get rid of it
     PtrieDestroyFlat(&dicTrieFlat);
+
+    #ifdef BEA_BUILD_ENABLE_DIC_TEST
+    for (u32 i = 0; i < assetCount; i++) {
+        const char* targetKey = assets[i].name;
+
+        const NnDicNode* node = NnDicFind(beaBuffer.data_void, dic, targetKey);
+        if (node == NULL) {
+            Panic("BeaBuild: dic test failed: node with key '%s' not found", targetKey);
+        }
+
+        const u32 nodeIndex = (node - dic->nodes) - 1;
+        if (nodeIndex != i) {
+            Panic("BeaBuild: dic test failed: node with key '%s' has wrong index %u (expected %u)", targetKey, nodeIndex, i);
+        }
+    }
+    #endif
 
     // String pool (really just the block header & misc. strings, we just wrote the asset names).
     NnStringPool* stringPool = (NnStringPool*)(beaBuffer.data_u8 + stringPoolOffset);
