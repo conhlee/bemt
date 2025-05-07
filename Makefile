@@ -1,7 +1,7 @@
 PKGCONFIG_ZSTD ?= 0
 
 CC = gcc
-CFLAGS += $(shell pkg-config --cflags zlib opus) -Wall -Wpedantic -O3
+CFLAGS += $(shell pkg-config --cflags zlib opus) -Wall -Wpedantic -O3 -Wno-zero-length-array
 LDFLAGS += $(shell pkg-config --libs zlib opus)
 TARGET = bemt
 SOURCES = \
