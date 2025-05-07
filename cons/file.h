@@ -26,4 +26,8 @@ ConsList DirectoryGetAllFiles(const char* rootPath);
 // Returns dynamically allocated string containing directory name on success, NULL on failure.
 char* DirectoryGetName(const char* dirPath);
 
+// Remove a file from the FS.
+// Returns 0 on success, 1 on failure.
+int FileRemove(const char* path);
+
 #endif // CONS_FILE_H

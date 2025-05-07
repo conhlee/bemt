@@ -173,3 +173,7 @@ char* DirectoryGetName(const char* dirPath) {
 
     return strdup(basename(pathCopy));
 }
+
+int FileRemove(const char* path) {
+    return remove(path) != 0;
+}
