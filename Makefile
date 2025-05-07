@@ -17,6 +17,14 @@ HEADERS = \
 	stb/stb_image_write.h \
 	process/nnBin.h process/beaProcess.h
 
+# lua stuff
+CFLAGS += -Ilua/lib/src
+
+SOURCES += $(wildcard lua/lib/src/*.c)
+SOURCES := $(filter-out lua/lib/src/luac.c lua/lib/src/lua.c, $(SOURCES))
+
+HEADERS += $(wildcard lua/lib/src/*.h)
+
 OBJECTS = $(SOURCES:.c=.o)
 
 ifneq ($(PKGCONFIG_ZSTD),0)
