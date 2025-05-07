@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
 
             buildAssets[i].name = filePath + rootDirPathLen + 1;
             buildAssets[i].compressionType = BEA_COMPRESSION_TYPE_ZSTD;
-            buildAssets[i].alignmentShift = 8; // 256byte alignment by default.
+            buildAssets[i].alignmentShift = 12; // 4096 byte alignment by default.
             
             printf("    - %s\n", buildAssets[i].name);
 
