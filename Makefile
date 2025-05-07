@@ -8,14 +8,16 @@ SOURCES = \
 	cons/buffer.c cons/comp.c cons/error.c cons/file.c cons/linklist.c cons/list.c cons/ptrie.c \
 	tex/bcn.c tex/tegraSwizzle.c \
 	stb/stb_image_write_impl.c \
-	process/nnBin.c process/beaProcess.c process/bntxProcess.c \
+	lua/luacInterface.c lua/unluacInterface.c \
+	process/nnBin.c process/beaProcess.c process/bntxProcess.c process/luaProcess.c \
 	main.c
 HEADERS = \
 	cons/cons.h cons/buffer.h cons/comp.h cons/error.h cons/file.h cons/linklist.h cons/list.h \
 	cons/macro.h cons/ptrie.h cons/type.h \
 	tex/bcn.h tex/tegraSwizzle.h \
 	stb/stb_image_write.h \
-	process/nnBin.h process/beaProcess.h
+	lua/luacInterface.h lua/unluacInterface.h \
+	process/nnBin.h process/beaProcess.h process/bntxProcess.h process/luaProcess.h
 
 # lua stuff
 CFLAGS += -Ilua/lib/src

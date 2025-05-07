@@ -6,7 +6,10 @@
 #include "cons/cons.h"
 
 #include "process/beaProcess.h"
+#include "process/luaProcess.h"
 #include "process/bntxProcess.h"
+
+#include "lua/unluacInterface.h"
 
 #include "stb/stb_image_write.h"
 
@@ -24,6 +27,8 @@ void usage(char* arg0) {
         "modes:\n"
         "     bea_unpack       Extract all assets from a BEA archive.\n"
         "     bea_pack         Pack the input directory into a BEA archive.\n"
+        "\n"
+        "     lua_decomp       Decompile a binary lua file.\n"
         "\n"
         "     bntx_extract     Extract all textures from a BNTX texture group.\n",
         arg0
@@ -90,7 +95,7 @@ int main(int argc, char** argv) {
 
         BufferDestroy(&buffer);
     }
-    else if (strcasecmp(mode, "bea_pack") == 0) {          
+    else if (strcasecmp(mode, "bea_pack") == 0) {
         char* rootDirPath = strdup(argv[2]);
 
         // Remove trailing slashes.
@@ -155,6 +160,48 @@ int main(int argc, char** argv) {
             free(*(char**)ListGet(&fileList, i));
         }
         ListDestroy(&fileList);
+    }
+    else if (strcasecmp(mode, "lua_decomp") == 0) {
+        printf("-- Decompiling Lua --\n\n");
+
+        printf("Extracing bytecode..");
+        fflush(stdout);
+
+        ConsBuffer buffer = FileLoadMem(argv[2]);
+        if (!BufferIsValid(&buffer))
+            Panic("Failed to load Lua file ..");
+        ConsBufferView luaView = BUFFER_TO_VIEW(buffer);
+
+        LuaPreprocess(luaView);
+
+        ConsBufferView luacView = LuaGetBytecode(luaView);
+    
+        char tempFilePath[] = "bemt_luadec_temp_XXXXXX";
+        if (mkstemp(tempFilePath) == -1)
+            Panic("mkstemp failed ..");
+
+        if (FileWriteMem(luacView, tempFilePath))
+            Panic("Failed to write temporary luac file ..");
+
+        BufferDestroy(&buffer);
+
+        printf(" OK\nRunning unluac..");
+        fflush(stdout);
+
+        char* decompiled = UnluacRun(tempFilePath);
+        if (decompiled == NULL)
+            Panic("Failed to decompile Lua ..");
+
+        printf(" OK\n");
+
+        if (FileRemove(tempFilePath))
+            Warn("Failed to remove temporary luac file ..");
+
+        if (FileWriteMem(BufferViewFromCstr(decompiled), argv[3])) {
+            Panic("Failed to write decompiled lua to disk!");
+        }
+
+        free(decompiled);
     }
     else if (strcasecmp(mode, "bntx_test") == 0) {
         ConsBuffer bufferTiled = FileLoadMem("/Users/angelo/Downloads/128_bc3_tiled.bin");
