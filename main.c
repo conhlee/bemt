@@ -22,13 +22,14 @@ void usage(char* arg0) {
         "Solutions Incorporated Co. Limited BV CV VOF Gmbh Holdings\n"
         "Worldwide International Corporation\n"
         "\n"
-        "usage: %s [mode] [input_files_or_directories] <output_file>\n"
+        "usage: %s [mode] <input_file_or_directory> <output_file>\n"
         "\n"
         "modes:\n"
         "     bea_unpack       Extract all assets from a BEA archive.\n"
         "     bea_pack         Pack the input directory into a BEA archive.\n"
         "\n"
         "     lua_decomp       Decompile a binary lua file.\n"
+        "     lua_comp         Compile a lua file.\n"
         "\n"
         "     bntx_extract     Extract all textures from a BNTX texture group.\n",
         arg0
@@ -44,7 +45,7 @@ int main(int argc, char** argv) {
     const char* mode = argv[1];
 
     if (strcasecmp(mode, "bea_unpack") == 0) {
-        printf("-- Unpacking BEA --\n");
+        printf("-- Unpacking BEA --\n\n");
 
         ConsBuffer buffer = FileLoadMem(argv[2]);
         if (!BufferIsValid(&buffer))
@@ -55,11 +56,13 @@ int main(int argc, char** argv) {
 
         const NnString* archiveName = BeaGetArchiveName(beaView);
 
+        printf("Extracting assets:\n");
+
         u32 assetCount = BeaGetAssetCount(beaView);
         for (u32 i = 0; i < assetCount; i++) {
             const NnString* filename = BeaGetAssetFilename(beaView, i);
 
-            printf("Extracting: %.*s ..", (int)filename->len, filename->str);
+            printf("    - Extracting: %.*s ..", (int)filename->len, filename->str);
             fflush(stdout);
 
             char filePath[1024];
@@ -202,6 +205,32 @@ int main(int argc, char** argv) {
         }
 
         free(decompiled);
+    }
+    else if (strcasecmp(mode, "lua_comp") == 0) {
+        printf("-- Compiling Lua --\n\n");
+
+        printf("Compiling..");
+        fflush(stdout);
+
+        ConsBuffer buffer = FileLoadMem(argv[2]);
+        if (!BufferIsValid(&buffer))
+            Panic("Failed to load source Lua file ..");
+
+        // Null-terminate.
+        BufferGrow(&buffer, 1);
+        buffer.data_s8[buffer.size - 1] = '\0';
+
+        ConsBuffer luaBuffer = LuaBuild((const char*)buffer.data_s8);
+
+        BufferDestroy(&buffer);
+
+        printf(" OK\n");
+
+        if (FileWriteMem(BUFFER_TO_VIEW(luaBuffer), argv[3])) {
+            Panic("Failed to write lua binary to disk!");
+        }
+
+        BufferDestroy(&luaBuffer);
     }
     else if (strcasecmp(mode, "bntx_test") == 0) {
         ConsBuffer bufferTiled = FileLoadMem("/Users/angelo/Downloads/128_bc3_tiled.bin");
