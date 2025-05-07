@@ -8,6 +8,14 @@
 *.webm
 *.bntx
 *.ftxb
+*.csv
+*.lyt
+*.nbmap
+*.fmdb
+*.fmab
+*.fskb
+*.fvbb
+*.fsnb
 
 *.txt
 *.png
