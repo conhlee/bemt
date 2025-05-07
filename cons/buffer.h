@@ -3,6 +3,8 @@
 
 #include "type.h"
 
+#include <string.h>
+
 // Owning.
 typedef struct ConsBuffer {
     union {
@@ -56,6 +58,13 @@ static inline ConsBufferView BufferViewFromPtrs(void* dataStart, void* dataEnd) 
     ConsBufferView view;
     view.data_void = dataStart;
     view.size = (u64)((u8*)dataEnd - (u8*)dataStart);
+
+    return view;
+}
+static inline ConsBufferView BufferViewFromCstr(const char* cstr) {
+    ConsBufferView view;
+    view.data_void = (void*)cstr;
+    view.size = strlen(cstr);
 
     return view;
 }
