@@ -16,6 +16,16 @@
 *.fskb
 *.fvbb
 *.fsnb
+*.fshb
+*.bnbshpk
+*.elf
+*.bfsha
+*.wmbt
+*.wmbp
+ConvertList.xml
+*.bfsar
+*.bnvib
+*.apx
 
 *.txt
 *.png
