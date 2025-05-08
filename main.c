@@ -56,6 +56,8 @@ int main(int argc, char** argv) {
 
         const NnString* archiveName = BeaGetArchiveName(beaView);
 
+        const char* outputDir = argv[3];
+
         printf("Extracting assets:\n");
 
         u32 assetCount = BeaGetAssetCount(beaView);
@@ -67,7 +69,8 @@ int main(int argc, char** argv) {
 
             char filePath[1024];
             snprintf(
-                filePath, sizeof(filePath), "%.*s/%.*s",
+                filePath, sizeof(filePath), "%s%s%.*s/%.*s",
+                outputDir, (outputDir != NULL) ? "/" : "",
                 (int)archiveName->len, archiveName->str, (int)filename->len, filename->str
             );
 
