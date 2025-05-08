@@ -9,6 +9,8 @@
 #include "../cons/list.h"
 #include "../cons/ptrie.h"
 
+#include <stdio.h>
+
 #include <string.h>
 
 #include <stddef.h>
@@ -43,6 +45,8 @@ typedef struct __attribute__((packed)) {
     u32 decompressedDataSize;
     u32 _reserved; // TODO: is this a reserved field, or padding?
 
+    // NOTE: asset data is not loaded into memory when the archive is loaded; the archive binary
+    //       is reloaded with the data offset and size to obtain the (compressed) data.
     u64 dataOffset; // Non-relocated offset to the data.
     u64 filenamePtr; // Relocated offset to a NnString containing the filename.
 } BeaAssetBlock;
@@ -179,7 +183,7 @@ ConsBuffer BeaGetDecompressedData(ConsBufferView beaData, u32 assetIndex) {
     return buffer;
 }
 
-// #define BEA_BUILD_ENABLE_DIC_TEST
+#define BEA_BUILD_ENABLE_DIC_TEST
 
 ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* archiveName) {
     if (assets == NULL)
@@ -193,11 +197,21 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
     ConsList compressedDataList;
     ListInit(&compressedDataList, sizeof(ConsBuffer), assetCount);
 
+    printf("Compressing assets:\n");
+
     for (u32 i = 0; i < assetCount; i++) {
         const BeaBuildAsset* asset = assets + i;
 
         if (!BufferViewIsValid(&asset->dataView))
-            Panic("BeaBuild: asset %u ('%s') has an invalid data view", i, asset->name);
+            Panic("BeaBuild: asset no. %u ('%s') has an invalid data view", i+1, asset->name);
+
+        printf("    %u. %s", i+1, asset->name);
+        if (asset->dataView.size < 1024)
+            printf(" (%llub)\n", asset->dataView.size);
+        else
+            printf(" (%llukb)\n", asset->dataView.size / 1024);
+
+        fflush(stdout);
 
         ConsBuffer compressedData;
         switch (asset->compressionType) {
@@ -211,12 +225,12 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
             compressedData = CompressZstd(asset->dataView);
             break;
         default:
-            Panic("BeaBuild: asset %u ('%s') has an invalid compression type (%u)", i, asset->name, (u32)asset->compressionType);
+            Panic("BeaBuild: asset no. %u ('%s') has an invalid compression type (%u)", i+1, asset->name, (u32)asset->compressionType);
             break;
         }
 
         if (!BufferIsValid(&compressedData))
-            Panic("BeaBuild: failed to compress asset %u ('%s')", i, asset->name);
+            Panic("BeaBuild: failed to compress asset no. %u ('%s')", i+1, asset->name);
         
         ListAdd(&compressedDataList, &compressedData);
     }
@@ -241,6 +255,9 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
     u64 relocationCount = 3;
     relocationCount += 1 * assetCount; // 1 for every asset block (namePtr, not dataPtr for some reason).
 
+    printf("Constructing dictionary ..");
+    fflush(stdout);
+
     ConsPtrie dicTrie;
     PtrieInit(&dicTrie);
 
@@ -261,6 +278,9 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
 
         PtrieSwapFlatNode(&dicTrieFlat, i + 1, (found - dicTrieFlat.nodes));
     }
+
+    printf(" OK\nConstructing binary ..");
+    fflush(stdout);
 
     relocationCount += 1 * (1 + dicTrieFlat.nodeCount); // 1 for every dictionary node (namePtr).
 
@@ -290,21 +310,20 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
     archiveNameOffset += stringPoolOffset;
     assetNamesOffset += stringPoolOffset;
 
-    // Relocation table (for some reason, this is aligned to 8 bytes).
+    // Relocation table needs to be aligned to 8 bytes.
     binSize = ALIGN_UP_8(binSize);
 
     const u64 relocationTableOffset = binSize;
     binSize += sizeof(NnRelocTable) + sizeof(NnRelocSection) + (sizeof(NnRelocEntry) * relocationCount);
 
-    const u64 reflectedFileSize = binSize - 8;
+    const u64 memoryLoadSize = binSize;
 
-    binSize = ALIGN_UP_32(binSize);
     const u64 dataStartOffset = binSize;
 
     // Asset data.
     for (u32 i = 0; i < assetCount; i++) {
         ConsBuffer* compressedData = ListGet(&compressedDataList, i);
-        binSize += ALIGN_UP_32(compressedData->size);
+        binSize += compressedData->size;
     }
 
     ConsBuffer beaBuffer;
@@ -331,7 +350,7 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
     fileHeader->_00.firstBlockOffset = (u16)firstBlockOffset;
     fileHeader->_00.relocationTableOffset = (u32)relocationTableOffset;
 
-    fileHeader->_00.fileSize = reflectedFileSize; // lol
+    fileHeader->_00.memoryLoadSize = memoryLoadSize;
 
     fileHeader->assetCount = (u16)assetCount;
 
@@ -375,7 +394,7 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
         memcpy(beaBuffer.data_u8 + nextDataOffset, compressedData->data_void, compressedData->size);
 
         assetBlock->dataOffset = nextDataOffset;
-        nextDataOffset += ALIGN_UP_32(compressedData->size);
+        nextDataOffset += compressedData->size;
 
         BufferDestroy(compressedData);
 
@@ -414,22 +433,6 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
     // We don't need the flat trie anymore, we can get rid of it
     PtrieDestroyFlat(&dicTrieFlat);
 
-    #ifdef BEA_BUILD_ENABLE_DIC_TEST
-    for (u32 i = 0; i < assetCount; i++) {
-        const char* targetKey = assets[i].name;
-
-        const NnDicNode* node = NnDicFind(beaBuffer.data_void, dic, targetKey);
-        if (node == NULL) {
-            Panic("BeaBuild: dic test failed: node with key '%s' not found", targetKey);
-        }
-
-        const u32 nodeIndex = (node - dic->nodes) - 1;
-        if (nodeIndex != i) {
-            Panic("BeaBuild: dic test failed: node with key '%s' has wrong index %u (expected %u)", targetKey, nodeIndex, i);
-        }
-    }
-    #endif
-
     // String pool (really just the block header & misc. strings, we just wrote the asset names).
     NnStringPool* stringPool = (NnStringPool*)(beaBuffer.data_u8 + stringPoolOffset);
 
@@ -463,9 +466,10 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
     relocSection->dataOffset = 0;
     relocSection->dataSize = (u32)stringPoolEndOffset;
     relocSection->firstEntryIndex = 0;
-    relocSection->entryCount = relocationCount;
+    relocSection->entryCount = (u32)relocationCount;
 
-    NnRelocEntry* curRelocEntry = (NnRelocEntry*)NnRelocTableGetEntries(relocTable);
+    NnRelocEntry* relocEntriesStart = (NnRelocEntry*)NnRelocTableGetEntries(relocTable);
+    NnRelocEntry* curRelocEntry = relocEntriesStart;
 
     // First up is the file header.
 
@@ -473,7 +477,7 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
     curRelocEntry->offsetToPointerList = offsetof(BeaFileHeader, assetPointersPtr);
     curRelocEntry->pointerListCount = 1;
     curRelocEntry->pointersPerList = 1;
-    curRelocEntry->pointerListSpacing = 0;
+    curRelocEntry->pointerListSkip = 0;
 
     curRelocEntry++;
 
@@ -481,7 +485,7 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
     curRelocEntry->offsetToPointerList = offsetof(BeaFileHeader, dicPtr);
     curRelocEntry->pointerListCount = 1;
     curRelocEntry->pointersPerList = 1;
-    curRelocEntry->pointerListSpacing = 0;
+    curRelocEntry->pointerListSkip = 0;
 
     curRelocEntry++;
 
@@ -489,7 +493,7 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
     curRelocEntry->offsetToPointerList = offsetof(BeaFileHeader, archiveNamePtr);
     curRelocEntry->pointerListCount = 1;
     curRelocEntry->pointersPerList = 1;
-    curRelocEntry->pointerListSpacing = 0;
+    curRelocEntry->pointerListSkip = 0;
 
     curRelocEntry++;
 
@@ -498,7 +502,7 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
         curRelocEntry->offsetToPointerList = assetBlockPointersOffset + (sizeof(u64) * i);
         curRelocEntry->pointerListCount = 1;
         curRelocEntry->pointersPerList = 1;
-        curRelocEntry->pointerListSpacing = 0;
+        curRelocEntry->pointerListSkip = 0;
 
         curRelocEntry++;
     }
@@ -507,10 +511,10 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
     u64 dicNodesOffset = dictionaryOffset + offsetof(NnDic, nodes);
     for (u32 i = 0; i < dic->nodeCount + 1; i++) {
         // namePtr
-        curRelocEntry->offsetToPointerList = dicNodesOffset + (sizeof(NnDicNode) * i) + offsetof(NnDicNode, namePtr);
+        curRelocEntry->offsetToPointerList = dicNodesOffset + (sizeof(NnDicNode) * i) + offsetof(NnDicNode, namePtr);        
         curRelocEntry->pointerListCount = 1;
         curRelocEntry->pointersPerList = 1;
-        curRelocEntry->pointerListSpacing = 0;
+        curRelocEntry->pointerListSkip = 0;
 
         curRelocEntry++;
     }
@@ -521,10 +525,40 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
         curRelocEntry->offsetToPointerList = assetPointers[i] + offsetof(BeaAssetBlock, filenamePtr);
         curRelocEntry->pointerListCount = 1;
         curRelocEntry->pointersPerList = 1;
-        curRelocEntry->pointerListSpacing = 0;
+        curRelocEntry->pointerListSkip = 0;
 
         curRelocEntry++;
     }
+
+    if ((curRelocEntry - relocEntriesStart) > relocationCount) {
+        Panic("BeaBuild: too many relocations written!\n");
+    }
+    else if ((curRelocEntry - relocEntriesStart) < relocationCount) {
+        Panic("BeaBuild: too little relocations written!\n");
+    }
+
+    printf(" OK\n");
+
+#ifdef BEA_BUILD_ENABLE_DIC_TEST
+    printf("Testing dictionary ..");
+    fflush(stdout);
+    for (u32 i = 0; i < assetCount; i++) {
+        const char* targetKey = assets[i].name;
+
+        const NnDicNode* node = NnDicFind(beaBuffer.data_void, dic, targetKey);
+        if (node == NULL) {
+            Panic("BeaBuild: dic test failed: node with key '%s' not found", targetKey);
+        }
+
+        const u32 nodeIndex = (node - dic->nodes) - 1;
+        if (nodeIndex != i) {
+            Panic("BeaBuild: dic test failed: node with key '%s' has wrong index %u (expected %u)", targetKey, nodeIndex, i);
+        }
+    }
+    printf(" OK\n");
+#endif
+
+    fflush(stdout);
 
     return beaBuffer;
 }

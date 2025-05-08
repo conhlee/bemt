@@ -33,7 +33,7 @@ typedef struct __attribute__((packed)) {
     u16 firstBlockOffset;
     u32 relocationTableOffset;
 
-    u32 fileSize; // Might be inaccurate.
+    u32 memoryLoadSize; // The size of this file that is loaded into memory, not the actual file size.
 } NnFileHeader;
 _Static_assert(sizeof(NnFileHeader) == 0x20, "sizeof NnFileHeader is mismatched");
 
@@ -93,6 +93,7 @@ typedef struct __attribute__((packed)) {
 } NnDic;
 _Static_assert(sizeof(NnDic) == 0x18, "sizeof NnDic is mismatched");
 
+// set baseData to NULL if dictionary is relocated.
 const NnDicNode* NnDicFind(void* baseData, const NnDic* dic, const char* key);
 
 static inline u32 NnDicNodeGetIndex(const NnDic* dic, const NnDicNode* node) {
@@ -106,7 +107,7 @@ typedef struct __attribute__((packed)) {
     u32 offsetToPointerList; // Relative to the start of the file.
     u16 pointerListCount;
     u8 pointersPerList;
-    u8 pointerListSpacing; // Spacing between pointer lists, in bytes.
+    u8 pointerListSkip; // Spacing between pointer lists, in 8 byte interval.
 } NnRelocEntry;
 _Static_assert(sizeof(NnRelocEntry) == 0x08, "sizeof NnRelocEntry is mismatched");
 
@@ -114,7 +115,7 @@ typedef struct __attribute__((packed)) {
     u64 _dataAddress; // Address of this section's data, filled in at runtime.
     u32 dataOffset;
     u32 dataSize; // Not actually used in the relocation process.
-    u32 firstEntryIndex; // First entry that belongs to this section.
+    s32 firstEntryIndex; // First entry that belongs to this section.
     u32 entryCount;
 } NnRelocSection;
 _Static_assert(sizeof(NnRelocSection) == 0x18, "sizeof NnRelocSection is mismatched");
@@ -134,6 +135,14 @@ _Static_assert(sizeof(NnRelocTable) == 0x10, "sizeof NnRelocTable is mismatched"
 
 static inline const NnRelocEntry* NnRelocTableGetEntries(const NnRelocTable* table) {
     return (NnRelocEntry*)(table->sections + table->sectionCount);
+}
+
+void NnApplyRelocationTable(NnRelocTable* table);
+
+static inline void NnApplyRelocation(NnFileHeader* fileHeader) {
+    NnApplyRelocationTable((NnRelocTable*)(
+        (u8*)fileHeader + fileHeader->relocationTableOffset
+    ));
 }
 
 #endif // NN_BIN_H

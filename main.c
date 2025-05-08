@@ -74,26 +74,22 @@ int main(int argc, char** argv) {
             char* lastSlash = strrchr(filePath, '/');
             if (lastSlash) {
                 *lastSlash = '\0';
-                if (DirectoryCreateTree(filePath)) {
-                    printf(" DIR CREATE FAIL\n");
-                    continue;
-                }
+                if (DirectoryCreateTree(filePath))
+                    Panic("Failed to create directory tree at '%s' ..", filePath);
+
                 *lastSlash = '/';
             }
 
             ConsBuffer decompressedData = BeaGetDecompressedData(beaView, i);
-            if (!BufferIsValid(&decompressedData)) {
-                printf(" DECOMPRESS FAIL\n");
-                continue;
-            }
+            if (!BufferIsValid(&decompressedData))
+                Panic("Failed to decompress asset '%s' ..", filename->str);
 
-            int writeRes = FileWriteMem(BUFFER_TO_VIEW(decompressedData), filePath);
+            if (FileWriteMem(BUFFER_TO_VIEW(decompressedData), filePath))
+                Panic("Failed to write asset '%s' to path '%s' ..", filename->str, filePath);
+
             BufferDestroy(&decompressedData);
 
-            if (writeRes)
-                printf(" FAIL\n");
-            else
-                printf(" OK\n");
+            printf(" OK\n");
         }
 
         BufferDestroy(&buffer);
@@ -112,7 +108,7 @@ int main(int argc, char** argv) {
 
         printf("-- Creating archive '%s' --\n\n", archiveName);
 
-        printf("Getting files:\n");
+        printf("Loading assets..");
         fflush(stdout);
 
         ConsList fileList = DirectoryGetAllFiles(rootDirPath);
@@ -130,8 +126,6 @@ int main(int argc, char** argv) {
             buildAssets[i].name = filePath + rootDirPathLen + 1;
             buildAssets[i].compressionType = BEA_COMPRESSION_TYPE_ZSTD;
             buildAssets[i].alignmentShift = 12; // 4096 byte alignment by default.
-            
-            printf("    - %s\n", buildAssets[i].name);
 
             // This is a little iffy ..
             buildAssets[i].dataView = BUFFER_TO_VIEW(FileLoadMem(filePath));
@@ -140,14 +134,13 @@ int main(int argc, char** argv) {
             }
         }
 
-        printf("Serializing archive..");
-        fflush(stdout);
+        printf(" OK\n");
 
         ConsBuffer beaBuffer = BeaBuild(buildAssets, fileList.elementCount, archiveName);
 
         free(archiveName);
 
-        printf(" OK\nWriting file to path '%s'..", argv[3]);
+        printf("Writing final archive to path '%s'..", argv[3]);
         fflush(stdout);
 
         if (FileWriteMem(BUFFER_TO_VIEW(beaBuffer), argv[3])) {

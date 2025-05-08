@@ -64,3 +64,30 @@ const NnDicNode* NnDicFind(void* baseData, const NnDic* dic, const char* key) {
 
     return node;
 }
+
+void NnApplyRelocationTable(NnRelocTable* table) {
+    void* binStart = (u8*)table - table->selfOffset;
+    NnFileHeader* fileHeader = (NnFileHeader*)binStart;
+
+    NnRelocEntry* entries = (NnRelocEntry*)(table->sections + table->sectionCount);
+
+    for (u32 sectionIndex = 0; sectionIndex < table->sectionCount; sectionIndex++) {
+        NnRelocSection* section = table->sections + sectionIndex;
+
+        for (u32 entryIndex = 0; entryIndex < section->entryCount; entryIndex++) {
+            NnRelocEntry* entry = entries + section->firstEntryIndex + entryIndex;
+
+            u64* currentPointerList = (u64*)((u8*)binStart + entry->offsetToPointerList);
+            for (u32 pointerListIdx = 0; pointerListIdx < entry->pointerListCount; pointerListIdx++) {
+                for (u32 pointerIndex = 0; pointerIndex < entry->pointersPerList; pointerIndex++) {
+                    if (*currentPointerList != 0)
+                        *currentPointerList += (u64)binStart;
+                    currentPointerList++;
+                }
+                currentPointerList += entry->pointerListSkip;
+            }
+        }
+    }
+
+    fileHeader->flags |= 1;
+}
