@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
     const char* mode = argv[1];
 
     if (strcasecmp(mode, "bea_unpack") == 0) {
-        printf("-- Unpacking BEA --\n\n");
+        printf("-- Unpacking BEA at path '%s' --\n\n", argv[2]);
 
         ConsBuffer buffer = FileLoadMem(argv[2]);
         if (!BufferIsValid(&buffer))
@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
 
         char* archiveName = DirectoryGetName(rootDirPath);
 
-        printf("-- Creating archive '%s' --\n\n", archiveName);
+        printf("-- Creating archive '%s' from path '%s' --\n\n", archiveName, rootDirPath);
 
         printf("Loading assets..");
         fflush(stdout);
@@ -161,7 +161,7 @@ int main(int argc, char** argv) {
         ListDestroy(&fileList);
     }
     else if (strcasecmp(mode, "lua_decomp") == 0) {
-        printf("-- Decompiling Lua --\n\n");
+        printf("-- Decompiling Lua at path '%s' --\n\n", argv[2]);
 
         printf("Extracing bytecode..");
         fflush(stdout);
