@@ -17,12 +17,12 @@
 
 void usage(char* arg0) {
     printf(
-        "bemt (Bezel Engine MultiTool) v0.0\n"
+        "bemt (Bezel Engine MultiTool) v0.5\n"
         "a hacky piece of software by Conhlee LLC Ltd Inc Enterprises Group\n"
         "Solutions Incorporated Co. Limited BV CV VOF Gmbh Holdings\n"
         "Worldwide International Corporation\n"
         "\n"
-        "usage: %s [mode] <input_file_or_directory> <output_file>\n"
+        "usage: %s [mode] <input_file_or_directory> <output_file_or_directory>\n"
         "\n"
         "modes:\n"
         "     bea_unpack       Extract all assets from a BEA archive.\n"
@@ -268,6 +268,8 @@ int main(int argc, char** argv) {
         BufferDestroy(&buffer);
     }
     else {
+        printf("Invalid mode '%s' ..\n\n", mode);
+
         usage(argv[0]);
         return 1;
     }
