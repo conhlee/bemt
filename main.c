@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
             buildAssets[i].alignmentShift = 12; // 4096 byte alignment by default.
 
             buildAssets[i].data = FileLoadMem(filePath);
-            if (!BufferViewIsValid(&buildAssets[i].data)) {
+            if (!BufferIsValid(&buildAssets[i].data)) {
                 Panic("Failed to open file at path '%s'!", filePath);
             }
         }
