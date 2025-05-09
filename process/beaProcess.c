@@ -202,27 +202,27 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
     for (u32 i = 0; i < assetCount; i++) {
         const BeaBuildAsset* asset = assets + i;
 
-        if (!BufferViewIsValid(&asset->dataView))
+        if (!BufferIsValid(&asset->data))
             Panic("BeaBuild: asset no. %u ('%s') has an invalid data view", i+1, asset->name);
 
         printf("    %u. %s", i+1, asset->name);
-        if (asset->dataView.size < 1024)
-            printf(" (%llub)\n", asset->dataView.size);
+        if (asset->data.size < 1024)
+            printf(" (%llub)\n", asset->data.size);
         else
-            printf(" (%llukb)\n", asset->dataView.size / 1024);
+            printf(" (%llukb)\n", asset->data.size / 1024);
 
         fflush(stdout);
 
         ConsBuffer compressedData;
         switch (asset->compressionType) {
         case BEA_COMPRESSION_TYPE_NONE:
-            BufferInitCopyView(&compressedData, asset->dataView);
+            BufferInitCopyView(&compressedData, BUFFER_TO_VIEW(asset->data));
             break;
         case BEA_COMPRESSION_TYPE_ZLIB:
-            compressedData = CompressZlib(asset->dataView);
+            compressedData = CompressZlib(BUFFER_TO_VIEW(asset->data));
             break;
         case BEA_COMPRESSION_TYPE_ZSTD:
-            compressedData = CompressZstd(asset->dataView);
+            compressedData = CompressZstd(BUFFER_TO_VIEW(asset->data));
             break;
         default:
             Panic("BeaBuild: asset no. %u ('%s') has an invalid compression type (%u)", i+1, asset->name, (u32)asset->compressionType);
@@ -387,7 +387,7 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
         assetBlock->_pad8 = 0x00;
         assetBlock->alignmentShift = (u16)asset->alignmentShift;
         assetBlock->dataSize = (u32)compressedData->size;
-        assetBlock->decompressedDataSize = (u32)asset->dataView.size;
+        assetBlock->decompressedDataSize = (u32)asset->data.size;
         assetBlock->_reserved = 0x00000000;
 
         // Move asset data.

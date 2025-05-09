@@ -114,32 +114,32 @@ int main(int argc, char** argv) {
         printf("Loading assets..");
         fflush(stdout);
 
-        ConsList fileList = DirectoryGetAllFiles(rootDirPath);
+        ConsList filePathList = DirectoryGetAllFiles(rootDirPath);
+        const u64 assetCount = filePathList.elementCount;
 
-        if (ListIsEmpty(&fileList)) {
+        if (ListIsEmpty(&filePathList)) {
             Panic("Failed to open directory at path '%s'!", argv[2]);
         }
 
         const u64 rootDirPathLen = strlen(rootDirPath);
 
-        BeaBuildAsset* buildAssets = malloc(sizeof(BeaBuildAsset) * fileList.elementCount);
-        for (u32 i = 0; i < fileList.elementCount; i++) {
-            char* filePath = *(char**)ListGet(&fileList, i);
+        BeaBuildAsset* buildAssets = malloc(sizeof(BeaBuildAsset) * assetCount);
+        for (u64 i = 0; i < assetCount; i++) {
+            char* filePath = *(char**)ListGet(&filePathList, i);
 
             buildAssets[i].name = filePath + rootDirPathLen + 1;
             buildAssets[i].compressionType = BEA_COMPRESSION_TYPE_ZSTD;
             buildAssets[i].alignmentShift = 12; // 4096 byte alignment by default.
 
-            // This is a little iffy ..
-            buildAssets[i].dataView = BUFFER_TO_VIEW(FileLoadMem(filePath));
-            if (!BufferViewIsValid(&buildAssets[i].dataView)) {
+            buildAssets[i].data = FileLoadMem(filePath);
+            if (!BufferViewIsValid(&buildAssets[i].data)) {
                 Panic("Failed to open file at path '%s'!", filePath);
             }
         }
 
         printf(" OK\n");
 
-        ConsBuffer beaBuffer = BeaBuild(buildAssets, fileList.elementCount, archiveName);
+        ConsBuffer beaBuffer = BeaBuild(buildAssets, assetCount, archiveName);
 
         free(archiveName);
 
@@ -154,11 +154,11 @@ int main(int argc, char** argv) {
 
         free(rootDirPath);
 
-        for (unsigned i = 0; i < fileList.elementCount; i++) {
-            BufferDestroy(&buildAssets[i].dataView.as_buffer);
-            free(*(char**)ListGet(&fileList, i));
+        for (u64 i = 0; i < assetCount; i++) {
+            BufferDestroy(&buildAssets[i].data);
+            free(*(char**)ListGet(&filePathList, i));
         }
-        ListDestroy(&fileList);
+        ListDestroy(&filePathList);
     }
     else if (strcasecmp(mode, "lua_decomp") == 0) {
         printf("-- Decompiling Lua at path '%s' --\n\n", argv[2]);

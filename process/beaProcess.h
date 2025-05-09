@@ -37,7 +37,7 @@ ConsBuffer BeaGetDecompressedData(ConsBufferView beaData, u32 assetIndex);
 typedef struct BeaBuildAsset {
     const char* name; // Not owned by this structure.
     unsigned alignmentShift; // Alignment is 1 << alignmentShift.
-    ConsBufferView dataView;
+    ConsBuffer data;
     BeaCompressionType compressionType;
 } BeaBuildAsset;
 
