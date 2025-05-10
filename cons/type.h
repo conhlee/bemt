@@ -27,7 +27,7 @@ typedef int8_t   s8;
 #endif
 
 #ifndef bool
-typedef u8 bool;
+typedef _Bool bool;
 #define true 1
 #define false 0
 #endif
