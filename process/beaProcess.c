@@ -253,10 +253,13 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
 
     // There's three in the file header right out of the gate (assetPointersPtr, dicPtr, and archiveNamePtr).
     u64 relocationCount = 3;
-    relocationCount += 1 * assetCount; // 1 for every asset block (namePtr, not dataPtr for some reason).
+    relocationCount += 1 * assetCount; // 1 for every asset block (namePtr).
 
     printf("Constructing dictionary ..");
     fflush(stdout);
+
+    // This implementation won't generate an exactly matching tree as it utilizes internal
+    // nodes. I don't hate it enough to do anything about it
 
     ConsPtrie dicTrie;
     PtrieInit(&dicTrie);
@@ -394,6 +397,8 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
         memcpy(beaBuffer.data_u8 + nextDataOffset, compressedData->data_void, compressedData->size);
 
         assetBlock->dataOffset = nextDataOffset;
+
+        // Don't bother aligning; this data gets streamed into memory from the file on request.
         nextDataOffset += compressedData->size;
 
         BufferDestroy(compressedData);
