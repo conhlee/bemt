@@ -117,12 +117,12 @@ BeaCompressionType BeaGetAssetCompressionType(ConsBufferView beaData, u32 assetI
     return (BeaCompressionType)asset->compressionType;
 }
 
-u32 BeaGetAssetAlignment(ConsBufferView beaData, u32 assetIndex) {
+u64 BeaGetAssetAlignment(ConsBufferView beaData, u32 assetIndex) {
     BeaAssetBlock* asset = _IndexAsset(beaData, assetIndex);
     if (asset == NULL)
         return 0;
 
-    return (u32)(1 << asset->alignmentShift);
+    return 1ull << (asset->alignmentShift & 63);
 }
 
 u32 BeaGetAssetCompressedSize(ConsBufferView beaData, u32 assetIndex) {

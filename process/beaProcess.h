@@ -25,7 +25,7 @@ s64 BeaFindAssetIndex(ConsBufferView beaData, const char* filename);
 NnString* BeaGetAssetFilename(ConsBufferView beaData, u32 assetIndex);
 
 BeaCompressionType BeaGetAssetCompressionType(ConsBufferView beaData, u32 assetIndex);
-u32 BeaGetAssetAlignment(ConsBufferView beaData, u32 assetIndex);
+u64 BeaGetAssetAlignment(ConsBufferView beaData, u32 assetIndex);
 u32 BeaGetAssetCompressedSize(ConsBufferView beaData, u32 assetIndex);
 u32 BeaGetAssetDecompressedSize(ConsBufferView beaData, u32 assetIndex);
 
