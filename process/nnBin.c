@@ -8,16 +8,16 @@ bool NnFileHeaderCheckVer(
     if (fileHeader == NULL)
         return false;
 
-    u16 myVersionMajor;
-    if (fileHeader->byteOrderMark == NN_BOM_FOREIGN)
-        myVersionMajor = __builtin_bswap16(fileHeader->versionMajor);
-    else
-        myVersionMajor = fileHeader->versionMajor;
+    u16 fileVersionMajor = fileHeader->versionMajor;
+    u8 fileVersionMinor = fileHeader->versionMinor;
 
-    return
-        myVersionMajor == versionMajor &&
-        fileHeader->versionMinor == versionMinor &&
-        fileHeader->versionBugfix == versionBugfix;
+    if (fileHeader->byteOrderMark == NN_BOM_FOREIGN)
+        fileVersionMajor = __builtin_bswap16(fileVersionMajor);
+
+    if (fileVersionMajor == versionMajor)
+        return fileVersionMinor <= versionMinor;
+
+    return false;
 }
 
 static u32 _ExtractRefBit(const char* key, u32 keyLen, u32 refBit) {
