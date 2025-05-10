@@ -42,6 +42,10 @@ bool NnFileHeaderCheckVer(
     const NnFileHeader* fileHeader, u16 versionMajor, u8 versionMinor, u8 versionBugfix
 );
 
+static inline u64 NnFileHeaderGetAlignment(const NnFileHeader* fileHeader) {
+    return 1ull << (fileHeader->alignmentShift & 63);
+}
+
 typedef struct __attribute__((packed)) {
     u32 signature;
 
