@@ -47,14 +47,14 @@ static u64 block_depth(u64 depth) {
     return 1;
 }
 
-static inline u64 deswizzled_mip_size(
+u64 deswizzled_mip_size(
     u64 width, u64 height, u64 depth,
     u64 bytesPerPixel
 ) {
     return width * height * depth * bytesPerPixel;
 }
 
-static u64 swizzled_mip_size(
+u64 swizzled_mip_size(
     u64 width, u64 height, u64 depth,
     u64 blockHeight, u64 bytesPerPixel
 ) {
