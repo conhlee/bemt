@@ -20,7 +20,7 @@ bool NnFileHeaderCheckVer(
     return false;
 }
 
-static u32 _ExtractRefBit(const char* key, u32 keyLen, u32 refBit) {
+static u32 _NnDicExtractRefBit(const char* key, u32 keyLen, u32 refBit) {
     if (key == NULL)
         return 0;
 
@@ -48,7 +48,7 @@ const NnDicNode* NnDicFind(void* baseData, const NnDic* dic, const char* key) {
     while (prevNode->refBitPos < node->refBitPos) {
         prevNode = node;
 
-        u32 bit = _ExtractRefBit(key, keyLength, node->refBitPos);
+        u32 bit = _NnDicExtractRefBit(key, keyLength, node->refBitPos);
         u32 nextIndex = bit ? node->rightIndex : node->leftIndex;
         if (nextIndex >= totalNodes)
             return NULL;
@@ -66,6 +66,9 @@ const NnDicNode* NnDicFind(void* baseData, const NnDic* dic, const char* key) {
 }
 
 void NnApplyRelocationTable(NnRelocTable* table) {
+    if (table == NULL)
+        return;
+
     void* binStart = (u8*)table - table->selfOffset;
     NnFileHeader* fileHeader = (NnFileHeader*)binStart;
 
