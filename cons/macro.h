@@ -1,6 +1,8 @@
 #ifndef CONS_ALIGN_H
 #define CONS_ALIGN_H
 
+// CONS -- common macros
+
 // Alignment
 
 #define ALIGN_DOWN_2(value) ( (value) & ~(2 - 1) )

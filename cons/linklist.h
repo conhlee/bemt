@@ -1,6 +1,8 @@
 #ifndef CONS_LINKLIST_H
 #define CONS_LINKLIST_H
 
+// CONS -- linked list implementation
+
 #include "type.h"
 
 typedef struct ConsLLNode {

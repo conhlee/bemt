@@ -1,6 +1,8 @@
 #ifndef CONS_PTRIE_H
 #define CONS_PTRIE_H
 
+// CONS -- patricia trie implementation
+
 #include "type.h"
 
 typedef struct ConsPtrieNode {

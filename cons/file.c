@@ -55,29 +55,29 @@ ConsBuffer FileLoadMem(const char* path) {
     return buffer;
 }
 
-int FileWriteMem(ConsBufferView view, const char* path) {
+bool FileWriteMem(ConsBufferView view, const char* path) {
     if (path == NULL)
-        return 1;
+        return false;
 
     FILE* fp = fopen(path, "wb");
     if (fp == NULL)
-        return 1;
+        return false;
 
     if (BufferViewIsValid(&view)) {
         u64 bytesCopied = fwrite(view.data_void, 1, view.size, fp);
         if (bytesCopied < view.size && ferror(fp)) {
             fclose(fp);
-            return 1;
+            return false;
         }
     }
 
     fclose(fp);
-    return 0;
+    return true;
 }
 
-int DirectoryCreateTree(const char* _dirPath) {
+bool DirectoryCreateTree(const char* _dirPath) {
     if (_dirPath == NULL)
-        return 1;
+        return false;
 
     u64 dirPathLen = strlen(_dirPath);
     char* dirPath = malloc(dirPathLen + 1);
@@ -92,7 +92,7 @@ int DirectoryCreateTree(const char* _dirPath) {
             *p = '\0';
             if (mkdir(dirPath, S_IRWXU) != 0 && errno != EEXIST) {
                 free(dirPath);
-                return 1;
+                return false;
             }
             *p = '/';
         }
@@ -100,14 +100,14 @@ int DirectoryCreateTree(const char* _dirPath) {
 
     if (mkdir(dirPath, S_IRWXU) != 0 && errno != EEXIST) {
         free(dirPath);
-        return 1;
+        return false;
     }
 
     free(dirPath);
-    return 0;
+    return true;
 }
 
-static int _IsDirectory(const char* path) {
+static bool _IsDirectory(const char* path) {
     struct stat statbuf;
     if (stat(path, &statbuf) != 0)
         return 0;
@@ -147,7 +147,8 @@ ConsList DirectoryGetAllFiles(const char* rootPath) {
 
             if (_IsDirectory(fullPath)) {
                 LinkListInsertTail(&queue, (u64)strdup(fullPath));
-            } else {
+            }
+            else {
                 char* fileCopy = strdup(fullPath);
                 ListAdd(&fileList, &fileCopy);
             }
@@ -174,6 +175,6 @@ char* DirectoryGetName(const char* dirPath) {
     return strdup(basename(pathCopy));
 }
 
-int FileRemove(const char* path) {
-    return remove(path) != 0;
+bool FileRemove(const char* path) {
+    return remove(path) == 0;
 }

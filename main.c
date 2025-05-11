@@ -47,10 +47,10 @@ int main(int argc, char** argv) {
     if (strcasecmp(mode, "bea_unpack") == 0) {
         printf("-- Unpacking BEA at path '%s' --\n\n", argv[2]);
 
-        ConsBuffer buffer = FileLoadMem(argv[2]);
-        if (!BufferIsValid(&buffer))
+        ConsBuffer beaData = FileLoadMem(argv[2]);
+        if (!BufferIsValid(&beaData))
             Panic("Failed to load BEA file");
-        ConsBufferView beaView = BUFFER_TO_VIEW(buffer);
+        ConsBufferView beaView = BUFFER_TO_VIEW(beaData);
 
         BeaPreprocess(beaView);
 
@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
             char* lastSlash = strrchr(filePath, '/');
             if (lastSlash) {
                 *lastSlash = '\0';
-                if (DirectoryCreateTree(filePath))
+                if (!DirectoryCreateTree(filePath))
                     Panic("Failed to create directory tree at '%s' ..", filePath);
 
                 *lastSlash = '/';
@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
             if (!BufferIsValid(&decompressedData))
                 Panic("Failed to decompress asset '%s' ..", filename->str);
 
-            if (FileWriteMem(BUFFER_TO_VIEW(decompressedData), filePath))
+            if (!FileWriteMem(BUFFER_TO_VIEW(decompressedData), filePath))
                 Panic("Failed to write asset '%s' to path '%s' ..", filename->str, filePath);
 
             BufferDestroy(&decompressedData);
@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
             printf(" OK\n");
         }
 
-        BufferDestroy(&buffer);
+        BufferDestroy(&beaData);
     }
     else if (strcasecmp(mode, "bea_pack") == 0) {
         char* rootDirPath = strdup(argv[2]);
@@ -146,7 +146,7 @@ int main(int argc, char** argv) {
         printf("Writing final archive to path '%s'..", argv[3]);
         fflush(stdout);
 
-        if (FileWriteMem(BUFFER_TO_VIEW(beaBuffer), argv[3])) {
+        if (!FileWriteMem(BUFFER_TO_VIEW(beaBuffer), argv[3])) {
             Panic("Failed to write archive to disk!");
         }
 
@@ -179,7 +179,7 @@ int main(int argc, char** argv) {
         if (mkstemp(tempFilePath) == -1)
             Panic("mkstemp failed ..");
 
-        if (FileWriteMem(luacView, tempFilePath))
+        if (!FileWriteMem(luacView, tempFilePath))
             Panic("Failed to write temporary luac file ..");
 
         BufferDestroy(&buffer);
@@ -193,10 +193,10 @@ int main(int argc, char** argv) {
 
         printf(" OK\n");
 
-        if (FileRemove(tempFilePath))
+        if (!FileRemove(tempFilePath))
             Warn("Failed to remove temporary luac file ..");
 
-        if (FileWriteMem(BufferViewFromCstr(decompiled), argv[3])) {
+        if (!FileWriteMem(BufferViewFromCstr(decompiled), argv[3])) {
             Panic("Failed to write decompiled lua to disk!");
         }
 
@@ -208,25 +208,25 @@ int main(int argc, char** argv) {
         printf("Compiling..");
         fflush(stdout);
 
-        ConsBuffer buffer = FileLoadMem(argv[2]);
-        if (!BufferIsValid(&buffer))
+        ConsBuffer sourceData = FileLoadMem(argv[2]);
+        if (!BufferIsValid(&sourceData))
             Panic("Failed to load source Lua file ..");
 
         // Null-terminate.
-        BufferGrow(&buffer, 1);
-        buffer.data_s8[buffer.size - 1] = '\0';
+        BufferGrow(&sourceData, 1);
+        sourceData.data_s8[sourceData.size - 1] = '\0';
 
-        ConsBuffer luaBuffer = LuaBuild((const char*)buffer.data_s8);
+        ConsBuffer compiledBuf = LuaBuild((const char*)sourceData.data_s8);
 
-        BufferDestroy(&buffer);
+        BufferDestroy(&sourceData);
 
         printf(" OK\n");
 
-        if (FileWriteMem(BUFFER_TO_VIEW(luaBuffer), argv[3])) {
+        if (!FileWriteMem(BUFFER_TO_VIEW(compiledBuf), argv[3])) {
             Panic("Failed to write lua binary to disk!");
         }
 
-        BufferDestroy(&luaBuffer);
+        BufferDestroy(&compiledBuf);
     }
     else if (strcasecmp(mode, "bntx_test") == 0) {
         ConsBuffer bufferTiled = FileLoadMem("/Users/angelo/Downloads/128_bc3_tiled.bin");
@@ -239,33 +239,34 @@ int main(int argc, char** argv) {
     else if (strcasecmp(mode, "bntx_extract") == 0) {
         printf("-- Extracting BNTX --\n");
 
-        ConsBuffer buffer = FileLoadMem(argv[2]);
-        if (!BufferIsValid(&buffer))
+        ConsBuffer bntxData = FileLoadMem(argv[2]);
+        if (!BufferIsValid(&bntxData))
             Panic("Failed to load BNTX file");
+        ConsBufferView bntxView = BUFFER_TO_VIEW(bntxData);
 
-        BntxPreprocess(buffer);
+        BntxPreprocess(bntxView);
 
-        const char* groupName = BntxGetTextureGroupName(buffer);
-        u32 textureCount = BntxGetTextureCount(buffer);
+        const char* groupName = BntxGetTextureGroupName(bntxView);
+        u32 textureCount = BntxGetTextureCount(bntxView);
 
         printf("%s (%u textures)\n", groupName, textureCount);
 
         for (u32 i = 0; i < textureCount; i++) {
-            printf("    - %s (%u %u)\n", BntxGetTextureName(buffer, i)->str, BntxGetTextureFormat(buffer, i), BntxGetTextureTileMode(buffer,i));
-            ConsBuffer decoded = BntxDecodeTexture(buffer, i);
+            printf("    - %s (%u %u)\n", BntxGetTextureName(bntxView, i)->str, BntxGetTextureFormat(bntxView, i), BntxGetTextureTileMode(bntxView,i));
+            ConsBuffer decoded = BntxDecodeTexture(bntxView, i);
             if (BufferIsValid(&decoded)) {
                 char nameBuf[512];
-                snprintf(nameBuf, sizeof(nameBuf), "%s.png", BntxGetTextureName(buffer, i)->str);
+                snprintf(nameBuf, sizeof(nameBuf), "%s.png", BntxGetTextureName(bntxView, i)->str);
                 int res = stbi_write_png(
                     nameBuf,
-                    BntxGetTextureWidth(buffer, i), BntxGetTextureHeight(buffer, i),
-                    4, decoded.data_void, BntxGetTextureWidth(buffer, i) * 4
+                    BntxGetTextureWidth(bntxView, i), BntxGetTextureHeight(bntxView, i),
+                    4, decoded.data_void, BntxGetTextureWidth(bntxView, i) * 4
                 );
                 BufferDestroy(&decoded);
             }
         }
 
-        BufferDestroy(&buffer);
+        BufferDestroy(&bntxData);
     }
     else {
         printf("Invalid mode '%s' ..\n\n", mode);

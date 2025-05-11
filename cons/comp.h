@@ -1,7 +1,11 @@
 #ifndef CONS_COMP_H
 #define CONS_COMP_H
 
+// CONS -- compression implementation (zlib & zstd)
+
 #include "buffer.h"
+
+#include "type.h"
 
 // Compress data into Zlib format (DEFLATE).
 ConsBuffer CompressZlib(ConsBufferView data);

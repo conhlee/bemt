@@ -1,6 +1,8 @@
 #ifndef CONS_TYPE_H
 #define CONS_TYPE_H
 
+// CONS -- types
+
 #include <stdint.h>
 
 #ifndef u64

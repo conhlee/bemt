@@ -1,6 +1,8 @@
 #ifndef CONS_FILE_H
 #define CONS_FILE_H
 
+// CONS -- filesystem implementation
+
 #include "buffer.h"
 
 #include "list.h"
@@ -11,12 +13,12 @@
 ConsBuffer FileLoadMem(const char* path);
 
 // Write a file to the FS. If the view is empty, this will create an empty file.
-// Returns 0 on success, 1 on failure.
-int FileWriteMem(ConsBufferView view, const char* path);
+// Returns true on success, false on failure.
+bool FileWriteMem(ConsBufferView view, const char* path);
 
 // Create a directory tree.
-// Returns 0 on success, 1 on failure.
-int DirectoryCreateTree(const char* dirPath);
+// Returns true on success, false on failure.
+bool DirectoryCreateTree(const char* dirPath);
 
 // Get a list of all files in a directory (file paths), including subfiles.
 // Note: the strings contained in this list are dynamically allocated and must be freed.
@@ -27,7 +29,7 @@ ConsList DirectoryGetAllFiles(const char* rootPath);
 char* DirectoryGetName(const char* dirPath);
 
 // Remove a file from the FS.
-// Returns 0 on success, 1 on failure.
-int FileRemove(const char* path);
+// Returns true on success, false on failure.
+bool FileRemove(const char* path);
 
 #endif // CONS_FILE_H

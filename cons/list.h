@@ -1,6 +1,8 @@
 #ifndef CONS_LIST_H
 #define CONS_LIST_H
 
+// CONS -- list implementation
+
 #include "type.h"
 
 typedef struct ConsList {

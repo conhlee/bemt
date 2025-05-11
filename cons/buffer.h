@@ -1,6 +1,8 @@
 #ifndef CONS_BUFFER_H
 #define CONS_BUFFER_H
 
+// CONS -- data buffer (view) implementation
+
 #include "type.h"
 
 #include <string.h>
