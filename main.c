@@ -214,9 +214,9 @@ int main(int argc, char** argv) {
 
         // Null-terminate.
         BufferGrow(&sourceData, 1);
-        sourceData.data_s8[sourceData.size - 1] = '\0';
+        sourceData.data_char[sourceData.size - 1] = '\0';
 
-        ConsBuffer compiledBuf = LuaBuild((const char*)sourceData.data_s8);
+        ConsBuffer compiledBuf = LuaBuild(sourceData.data_char);
 
         BufferDestroy(&sourceData);
 

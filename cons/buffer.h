@@ -10,8 +10,8 @@
 // Owning.
 typedef struct ConsBuffer {
     union {
-        s8* data_s8;
         u8* data_u8;
+        char* data_char;
         void* data_void;
     };
     u64 size;
@@ -33,8 +33,8 @@ typedef union ConsBufferView {
     ConsBuffer as_buffer;
     struct {
         union {
-            s8* data_s8;
             u8* data_u8;
+            char* data_char;
             void* data_void;
         };
         u64 size;
