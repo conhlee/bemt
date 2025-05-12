@@ -204,12 +204,24 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
 
         if (!BufferIsValid(&asset->data))
             Panic("BeaBuild: asset no. %u ('%s') has an invalid data view", i+1, asset->name);
+        if (asset->data.size > 0xFFFFFFFF) {
+            double gibibytes = (double)asset->data.size / (1024. * 1024. * 1024.);
+            Panic("BeaBuild: asset no. %u ('%s') data is too big (%.4f gib)", i+1, asset->name, gibibytes);
+        }
+    
+        if (asset->alignmentShift > 63) {
+            Panic(
+                "BeaBuild: asset no. %u ('%s') has an invalid alignment shift (%u > 63)",
+                i+1, asset->name,
+                asset->alignmentShift
+            );
+        }
 
         printf("    %u. %s", i+1, asset->name);
         if (asset->data.size < 1024)
             printf(" (%llub)\n", asset->data.size);
         else
-            printf(" (%llukb)\n", asset->data.size / 1024);
+            printf(" (%llukib)\n", asset->data.size / 1024);
 
         fflush(stdout);
 
@@ -247,9 +259,6 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
 
     u64 archiveNameOffset = stringPoolSize; // Offset of string pool is added later.
     stringPoolSize += ALIGN_UP_2(sizeof(NnString) + strlen(archiveName) + 1); // Archive name.
-
-    // BEA relocations are weird because for some reason Nintendo opted to manually relocate
-    // only some fields; the selection is arbitrary
 
     // There's three in the file header right out of the gate (assetPointersPtr, dicPtr, and archiveNamePtr).
     u64 relocationCount = 3;

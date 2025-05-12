@@ -9,6 +9,8 @@ typedef enum BeaCompressionType {
     BEA_COMPRESSION_TYPE_NONE = 0,
     BEA_COMPRESSION_TYPE_ZLIB = 1,
     BEA_COMPRESSION_TYPE_ZSTD = 2,
+
+    BEA_COMPRESSION_TYPE_COUNT = 3
 } BeaCompressionType;
 
 void BeaPreprocess(ConsBufferView beaData);
@@ -36,7 +38,7 @@ ConsBuffer BeaGetDecompressedData(ConsBufferView beaData, u32 assetIndex);
 
 typedef struct BeaBuildAsset {
     const char* name; // Not owned by this structure.
-    unsigned alignmentShift; // Alignment is 1 << alignmentShift.
+    u32 alignmentShift; // Alignment is 1 << alignmentShift.
     ConsBuffer data;
     BeaCompressionType compressionType;
 } BeaBuildAsset;
