@@ -269,8 +269,7 @@ int main(int argc, char** argv) {
         BufferDestroy(&bntxData);
     }
     else {
-        printf("Invalid mode '%s' ..\n\n", mode);
-
+        Error("Invalid mode '%s' ..\n", mode);
         usage(argv[0]);
         return 1;
     }
