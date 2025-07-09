@@ -33,9 +33,11 @@ typedef struct __attribute__((packed)) {
     u16 firstBlockOffset;
     u32 relocationTableOffset;
 
-    u32 memoryLoadSize; // The size of this file that is loaded into memory, not the actual file size.
+    // The size of this file that is loaded into memory.
+    //     - Note that in some cases, this won't be the total file size.
+    u32 memoryLoadSize;
 } NnFileHeader;
-_Static_assert(sizeof(NnFileHeader) == 0x20, "sizeof NnFileHeader is mismatched");
+STRUCT_SIZE_ASSERT(NnFileHeader, 0x20);
 
 // Returns true if the version is matching, false if not. Accounts for foreign endianness.
 bool NnFileHeaderCheckVer(
@@ -53,7 +55,7 @@ typedef struct __attribute__((packed)) {
     u32 blockSize;
     u32 _reserved;
 } NnBlockHeader;
-_Static_assert(sizeof(NnBlockHeader) == 0x10, "sizeof NnBlockHeader is mismatched");
+STRUCT_SIZE_ASSERT(NnBlockHeader, 0x10);
 
 static inline NnBlockHeader* NnBlockGetNext(NnBlockHeader* block) {
     if (block == NULL || block->offsetToNextBlock == 0)
@@ -66,7 +68,7 @@ typedef struct __attribute__((packed)) {
     u16 len;
     char str[0]; // Must be null-terminated.
 } NnString;
-_Static_assert(sizeof(NnString) == 0x02, "sizeof NnString is mismatched");
+STRUCT_SIZE_ASSERT(NnString, 0x02);
 
 typedef struct __attribute__((packed)) {
     // Why is the string pool is considered a block ..??
@@ -78,7 +80,7 @@ typedef struct __attribute__((packed)) {
     // 16-bit read on the length field.
     NnString firstString[0];
 } NnStringPool;
-_Static_assert(sizeof(NnStringPool) == 0x14, "sizeof NnStringPool is mismatched");
+STRUCT_SIZE_ASSERT(NnStringPool, 0x14);
 
 typedef struct __attribute__((packed)) {
     s32 refBitPos; // Root node always has the value -1 (npos).
@@ -87,7 +89,7 @@ typedef struct __attribute__((packed)) {
 
     u64 namePtr; // Relocated offset to a NnString containing the name.
 } NnDicNode;
-_Static_assert(sizeof(NnDicNode) == 0x10, "sizeof NnDicNode is mismatched");
+STRUCT_SIZE_ASSERT(NnDicNode, 0x10);
 
 typedef struct __attribute__((packed)) {
     u32 signature; // Compare to NN__DIC_MAGIC.
@@ -95,7 +97,7 @@ typedef struct __attribute__((packed)) {
     s32 nodeCount; // Exclusive of root node.
     NnDicNode nodes[1];
 } NnDic;
-_Static_assert(sizeof(NnDic) == 0x18, "sizeof NnDic is mismatched");
+STRUCT_SIZE_ASSERT(NnDic, 0x18);
 
 // set baseData to NULL if dictionary is relocated.
 const NnDicNode* NnDicFind(void* baseData, const NnDic* dic, const char* key);
@@ -113,7 +115,7 @@ typedef struct __attribute__((packed)) {
     u8 pointersPerList;
     u8 pointerListSkip; // Spacing between pointer lists, in 8 byte interval.
 } NnRelocEntry;
-_Static_assert(sizeof(NnRelocEntry) == 0x08, "sizeof NnRelocEntry is mismatched");
+STRUCT_SIZE_ASSERT(NnRelocEntry, 0x08);
 
 typedef struct __attribute__((packed)) {
     u64 _dataAddress; // Address of this section's data, filled in at runtime.
@@ -122,7 +124,7 @@ typedef struct __attribute__((packed)) {
     s32 firstEntryIndex; // First entry that belongs to this section.
     u32 entryCount;
 } NnRelocSection;
-_Static_assert(sizeof(NnRelocSection) == 0x18, "sizeof NnRelocSection is mismatched");
+STRUCT_SIZE_ASSERT(NnRelocSection, 0x18);
 
 // Must be aligned to 8 bytes.
 typedef struct __attribute__((packed)) {
@@ -135,7 +137,7 @@ typedef struct __attribute__((packed)) {
     NnRelocSection sections[0];
     // NnRelocEntry entries[0]; // Entries follow the sections.
 } NnRelocTable;
-_Static_assert(sizeof(NnRelocTable) == 0x10, "sizeof NnRelocTable is mismatched");
+STRUCT_SIZE_ASSERT(NnRelocTable, 0x10);
 
 static inline const NnRelocEntry* NnRelocTableGetEntries(const NnRelocTable* table) {
     return (NnRelocEntry*)(table->sections + table->sectionCount);

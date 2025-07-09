@@ -33,7 +33,7 @@ typedef struct __attribute__((packed)) {
 
     u64 archiveNamePtr; // 0x40; relocated offset to a NnString containing the archive name.
 } BeaFileHeader;
-_Static_assert(sizeof(BeaFileHeader) == 0x48, "sizeof BeaFileHeader is mismatched");
+STRUCT_SIZE_ASSERT(BeaFileHeader, 0x48);
 
 typedef struct __attribute__((packed)) {
     NnBlockHeader _00; // Identifier is ASST_ID.
@@ -50,7 +50,7 @@ typedef struct __attribute__((packed)) {
     u64 dataOffset; // Non-relocated offset to the data.
     u64 filenamePtr; // Relocated offset to a NnString containing the filename.
 } BeaAssetBlock;
-_Static_assert(sizeof(BeaAssetBlock) == 0x30, "sizeof BeaAssetBlock is mismatched");
+STRUCT_SIZE_ASSERT(BeaAssetBlock, 0x30);
 
 void BeaPreprocess(ConsBufferView beaData) {
     const BeaFileHeader* fileHeader = beaData.data_void;
