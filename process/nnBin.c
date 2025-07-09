@@ -8,11 +8,11 @@ bool NnFileHeaderCheckVer(
     if (fileHeader == NULL)
         return false;
 
-    u16 fileVersionMajor = fileHeader->versionMajor;
-    u8 fileVersionMinor = fileHeader->versionMinor;
+    const u16 fileVersionMajor = (fileHeader->byteOrderMark == NN_BOM_FOREIGN) ?
+        __builtin_bswap16(fileHeader->versionMajor) :
+        fileHeader->versionMajor;
 
-    if (fileHeader->byteOrderMark == NN_BOM_FOREIGN)
-        fileVersionMajor = __builtin_bswap16(fileVersionMajor);
+    const u8 fileVersionMinor = fileHeader->versionMinor;
 
     if (fileVersionMajor == versionMajor)
         return fileVersionMinor <= versionMinor;
@@ -24,10 +24,10 @@ static u32 _NnDicExtractRefBit(const char* key, u32 keyLen, u32 refBit) {
     if (key == NULL)
         return 0;
 
-    u32 invByteIdx = refBit >> 3;
+    const u32 invByteIdx = refBit >> 3;
     if (invByteIdx < keyLen) {
-        u32 byteIdx = keyLen - 1 - invByteIdx;
-        u32 shift = refBit & 7;
+        const u32 byteIdx = keyLen - 1 - invByteIdx;
+        const u32 shift = refBit & 7;
 
         return ((u8)(key[byteIdx]) >> shift) & 1;
     }
@@ -36,7 +36,7 @@ static u32 _NnDicExtractRefBit(const char* key, u32 keyLen, u32 refBit) {
 }
 
 const NnDicNode* NnDicFind(void* baseData, const NnDic* dic, const char* key) {
-    if (dic == NULL || key == NULL)
+    if (baseData == NULL || dic == NULL || key == NULL)
         return NULL;
 
     const u32 keyLength = strlen(key);
@@ -48,8 +48,8 @@ const NnDicNode* NnDicFind(void* baseData, const NnDic* dic, const char* key) {
     while (prevNode->refBitPos < node->refBitPos) {
         prevNode = node;
 
-        u32 bit = _NnDicExtractRefBit(key, keyLength, node->refBitPos);
-        u32 nextIndex = bit ? node->rightIndex : node->leftIndex;
+        const u32 bit = _NnDicExtractRefBit(key, keyLength, node->refBitPos);
+        const u32 nextIndex = (bit == 0) ? node->leftIndex : node->rightIndex;
         if (nextIndex >= totalNodes)
             return NULL;
 

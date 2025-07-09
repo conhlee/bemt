@@ -132,8 +132,8 @@ typedef struct __attribute__((packed)) {
 
     u32 selfOffset; // Offset to this table.
     u32 sectionCount; 
-    u32 _reserved; // TODO: this might actually be padding
 
+    u32 _pad32; // Padding to align the address in NnRelocSection to 8 bytes
     NnRelocSection sections[0];
     // NnRelocEntry entries[0]; // Entries follow the sections.
 } NnRelocTable;

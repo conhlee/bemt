@@ -472,7 +472,7 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
     relocTable->signature = NN__RLT_MAGIC;
     relocTable->selfOffset = (u32)relocationTableOffset;
     relocTable->sectionCount = 1;
-    relocTable->_reserved = 0x00000000;
+    relocTable->_pad32 = 0x00000000;
 
     NnRelocSection* relocSection = relocTable->sections + 0;
 
