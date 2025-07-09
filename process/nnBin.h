@@ -143,12 +143,6 @@ static inline const NnRelocEntry* NnRelocTableGetEntries(const NnRelocTable* tab
     return (NnRelocEntry*)(table->sections + table->sectionCount);
 }
 
-void NnApplyRelocationTable(NnRelocTable* table);
-
-static inline void NnApplyRelocation(NnFileHeader* fileHeader) {
-    NnApplyRelocationTable((NnRelocTable*)(
-        (u8*)fileHeader + fileHeader->relocationTableOffset
-    ));
-}
+void NnRelocTableApply(NnRelocTable* table);
 
 #endif // NN_BIN_H

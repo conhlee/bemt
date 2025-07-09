@@ -65,20 +65,20 @@ const NnDicNode* NnDicFind(void* baseData, const NnDic* dic, const char* key) {
     return node;
 }
 
-void NnApplyRelocationTable(NnRelocTable* table) {
+void NnRelocTableApply(NnRelocTable* table) {
     if (table == NULL)
         return;
 
-    void* binStart = (u8*)table - table->selfOffset;
-    NnFileHeader* fileHeader = (NnFileHeader*)binStart;
+    void* binStart = (void*)((u8*)table - table->selfOffset);
+    // NnFileHeader* fileHeader = (NnFileHeader*)binStart;
 
-    NnRelocEntry* entries = (NnRelocEntry*)(table->sections + table->sectionCount);
+    const NnRelocEntry* entries = (NnRelocEntry*)(table->sections + table->sectionCount);
 
     for (u32 sectionIndex = 0; sectionIndex < table->sectionCount; sectionIndex++) {
-        NnRelocSection* section = table->sections + sectionIndex;
+        const NnRelocSection* section = table->sections + sectionIndex;
 
         for (u32 entryIndex = 0; entryIndex < section->entryCount; entryIndex++) {
-            NnRelocEntry* entry = entries + section->firstEntryIndex + entryIndex;
+            const NnRelocEntry* entry = entries + section->firstEntryIndex + entryIndex;
 
             u64* currentPointerList = (u64*)((u8*)binStart + entry->offsetToPointerList);
             for (u32 pointerListIdx = 0; pointerListIdx < entry->pointerListCount; pointerListIdx++) {
@@ -92,5 +92,6 @@ void NnApplyRelocationTable(NnRelocTable* table) {
         }
     }
 
-    fileHeader->flags |= 1;
+    // Hmmm .. Maybe we should leave the file header alone ..
+    // fileHeader->flags |= 1;
 }
