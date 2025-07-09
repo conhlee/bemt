@@ -11,7 +11,7 @@
 #define REF_BIT_NPOS ((u64)-1)
 #define NODE_NPOS ((u64)-1)
 
-ConsPtrieNode* _CreateNode(const char* key) {
+static ConsPtrieNode* _CreateNode(const char* key) {
     ConsPtrieNode* node = malloc(sizeof(ConsPtrieNode));
 
     if (key != NULL)
@@ -26,7 +26,7 @@ ConsPtrieNode* _CreateNode(const char* key) {
 }
 
 // Does not destroy children.
-void _DestroyNode(ConsPtrieNode* node) {
+static void _DestroyNode(ConsPtrieNode* node) {
     if (node == NULL)  
         return;
 
@@ -75,15 +75,15 @@ void PtrieDestroyFlat(ConsFlatPtrie* trie) {
     trie->nodeCount = 0;
 }
 
-static u32 _ExtractRefBit(const char* key, u32 refBit) {
-    u32 len = strlen(key);
-    u32 invByteIdx = refBit >> 3;
+static u32 _ExtractRefBit(const char* key, u64 refBit) {
+    u64 len = strlen(key);
+    u64 invByteIdx = refBit >> 3;
 
     if (invByteIdx >= len)
         return 0;
 
-    u32 byteIdx = len - 1 - invByteIdx;
-    u32 shift = refBit & 7;
+    u64 byteIdx = len - 1 - invByteIdx;
+    u64 shift = refBit & 7;
 
     return ((u8)(key[byteIdx]) >> shift) & 1;
 }

@@ -2,8 +2,6 @@
 
 #include <stdlib.h>
 
-#include <string.h>
-
 void BufferInit(ConsBuffer* buffer, u64 size) {
     if (buffer == NULL)
         return;
@@ -78,16 +76,18 @@ void BufferGrow(ConsBuffer* buffer, s64 growBy) {
         return;
 
     if (!buffer->data_void) {
-        BufferInit(buffer, growBy);
+        if (growBy > 0)
+            BufferInit(buffer, (u64)growBy);
         return;
     }
 
-    s64 newSize = buffer->size + growBy;
-
-    if (newSize <= 0) {
+    s64 _newSize = (s64)buffer->size + growBy;
+    if (_newSize <= 0) {
         BufferDestroy(buffer);
         return;
     }
+
+    u64 newSize = (u64)_newSize;
 
     buffer->data_void = realloc(buffer->data_void, newSize);
     if (newSize > buffer->size) {

@@ -63,7 +63,7 @@ static inline ConsBufferView BufferViewFromPtrs(void* dataStart, void* dataEnd) 
 
     return view;
 }
-static inline ConsBufferView BufferViewFromCstr(const char* cstr) {
+static inline ConsBufferView BufferViewFromCstr(char* cstr) {
     ConsBufferView view;
     view.data_void = (void*)cstr;
     view.size = strlen(cstr);

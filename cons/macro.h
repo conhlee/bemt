@@ -47,4 +47,8 @@
     (sizeof(larray) / sizeof((larray)[0]) + \
      0 * sizeof(char[1 - 2 * !!(sizeof(larray) / sizeof((larray)[0]) == 0)]))
 
+// Assertion
+
+#define STRUCT_SIZE_ASSERT(struct, expectSize) _Static_assert(sizeof(struct) == expectSize, "sizeof " #struct " is mismatched")
+
 #endif // CONS_ALIGN_H

@@ -9,16 +9,28 @@
 
 #include <string.h>
 
+#ifdef _WIN32
+
+#include <windows.h>
+#include <direct.h>  // _mkdir
+#include <io.h>      // _access
+
+#define PATH_SEPARATOR '\\'
+
+#else // _WIN32
+
 #include <sys/stat.h>
 #include <sys/types.h>
 
 #include <dirent.h>
-
 #include <libgen.h>
 
-#include <errno.h>
-
+#define PATH_SEPARATOR '/'
 #define MAX_PATH (4096)
+
+#endif // _WIN32
+
+#include <errno.h>
 
 ConsBuffer FileLoadMem(const char* path) {
     ConsBuffer buffer = {0};
@@ -35,7 +47,7 @@ ConsBuffer FileLoadMem(const char* path) {
         return buffer;
     }
 
-    u64 fileSize = ftell(fp);
+    u64 fileSize = (u64)ftell(fp);
     if (fileSize == (u64)-1L) {
         fclose(fp);
         return buffer;
@@ -81,37 +93,79 @@ bool DirectoryCreateTree(const char* _dirPath) {
 
     u64 dirPathLen = strlen(_dirPath);
     char* dirPath = malloc(dirPathLen + 1);
+    if (!dirPath)
+        return false;
     memcpy(dirPath, _dirPath, dirPathLen + 1);
 
-    if (dirPathLen > 0 && dirPath[dirPathLen - 1] == '/')
+    // Normalize path separators on Windows
+    #ifdef _WIN32
+    for (u64 i = 0; i < dirPathLen; ++i) {
+        if (dirPath[i] == '/')
+            dirPath[i] = '\\';
+    }
+    #endif
+
+    if (dirPathLen > 0 && (dirPath[dirPathLen - 1] == '/' || dirPath[dirPathLen - 1] == '\\'))
         dirPath[--dirPathLen] = '\0';
 
-    char* p = dirPath + 1;
+    char* p = dirPath;
+    // For Windows, handle drive letter e.g. "C:\"
+    if (
+        #ifdef _WIN32
+        dirPathLen > 2 && dirPath[1] == ':' && (dirPath[2] == '\\' || dirPath[2] == '/')
+        #else
+        dirPathLen > 0 && dirPath[0] == '/'
+        #endif
+    ) {
+        p = dirPath + 1;
+    }
+
     for (; *p; p++) {
-        if (*p == '/') {
+        if (*p == '/' || *p == '\\') {
             *p = '\0';
-            if (mkdir(dirPath, S_IRWXU) != 0 && errno != EEXIST) {
-                free(dirPath);
-                return false;
-            }
-            *p = '/';
+            #ifdef _WIN32
+                if (_mkdir(dirPath) != 0 && errno != EEXIST) {
+                    free(dirPath);
+                    return false;
+                }
+            #else
+                if (mkdir(dirPath, 0700) != 0 && errno != EEXIST) {
+                    free(dirPath);
+                    return false;
+                }
+            #endif
+            *p = PATH_SEPARATOR;
         }
     }
 
-    if (mkdir(dirPath, S_IRWXU) != 0 && errno != EEXIST) {
+    #ifdef _WIN32
+    if (_mkdir(dirPath) != 0 && errno != EEXIST) {
         free(dirPath);
         return false;
     }
+    #else
+    if (mkdir(dirPath, 0700) != 0 && errno != EEXIST) {
+        free(dirPath);
+        return false;
+    }
+    #endif
 
     free(dirPath);
     return true;
 }
 
 static bool _IsDirectory(const char* path) {
+#ifdef _WIN32
+    DWORD attr = GetFileAttributesA(path);
+    if (attr == INVALID_FILE_ATTRIBUTES)
+        return false;
+    return (attr & FILE_ATTRIBUTE_DIRECTORY) != 0;
+#else
     struct stat statbuf;
     if (stat(path, &statbuf) != 0)
-        return 0;
+        return false;
     return S_ISDIR(statbuf.st_mode);
+#endif
 }
 
 ConsList DirectoryGetAllFiles(const char* rootPath) {
@@ -130,6 +184,35 @@ ConsList DirectoryGetAllFiles(const char* rootPath) {
         char* currentPath = (char*)currentNode->data;
         LinkListDeleteNode(&currentNode, currentNode);
 
+#ifdef _WIN32
+        WIN32_FIND_DATAA findFileData;
+        char searchPath[MAX_PATH];
+        snprintf(searchPath, MAX_PATH, "%s\\*", currentPath);
+        HANDLE hFind = FindFirstFileA(searchPath, &findFileData);
+        if (hFind == INVALID_HANDLE_VALUE) {
+            Warn("DirectoryGetAllFiles: FindFirstFile failed on path '%s'; skipping", currentPath);
+            free(currentPath);
+            continue;
+        }
+
+        do {
+            const char* name = findFileData.cFileName;
+            if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0)
+                continue;
+
+            char fullPath[MAX_PATH];
+            snprintf(fullPath, MAX_PATH, "%s\\%s", currentPath, name);
+
+            if (_IsDirectory(fullPath)) {
+                LinkListInsertTail(&queue, (u64)strdup(fullPath));
+            } else {
+                char* fileCopy = strdup(fullPath);
+                ListAdd(&fileList, &fileCopy);
+            }
+        } while (FindNextFileA(hFind, &findFileData) != 0);
+
+        FindClose(hFind);
+#else
         DIR* dir = opendir(currentPath);
         if (dir == NULL) {
             Warn("DirectoryGetAllFiles: opendir failed on path '%s'; skipping", currentPath);
@@ -155,6 +238,7 @@ ConsList DirectoryGetAllFiles(const char* rootPath) {
         }
 
         closedir(dir);
+#endif
         free(currentPath);
     }
 
@@ -163,16 +247,28 @@ ConsList DirectoryGetAllFiles(const char* rootPath) {
 
 char* DirectoryGetName(const char* dirPath) {
     char resolvedPath[MAX_PATH];
+
+#ifdef _WIN32
+    if (_fullpath(resolvedPath, dirPath, MAX_PATH) == NULL) {
+        Warn("DirectoryGetName: _fullpath failed ..");
+        return NULL;
+    }
+
+    // Find last path separator
+    char* lastSep = strrchr(resolvedPath, '\\');
+#else
     if (realpath(dirPath, resolvedPath) == NULL) {
         Warn("DirectoryGetName: realpath failed ..");
         return NULL;
     }
 
-    char pathCopy[MAX_PATH];
-    strncpy(pathCopy, resolvedPath, MAX_PATH - 1);
-    pathCopy[MAX_PATH - 1] = '\0';
+    char* lastSep = strrchr(resolvedPath, '/');
+#endif
 
-    return strdup(basename(pathCopy));
+    if (lastSep == NULL)
+        return strdup(resolvedPath);
+
+    return strdup(lastSep + 1);
 }
 
 bool FileRemove(const char* path) {

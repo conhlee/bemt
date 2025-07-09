@@ -11,14 +11,17 @@ ConsBuffer CompressZlib(ConsBufferView data) {
     if (!BufferViewIsValid(&data))
         return (ConsBuffer){ 0 };
 
+    if (data.size > 0xFFFFFFFF)
+        return (ConsBuffer){ 0 };
+
     ConsBuffer buffer;
     BufferInit(&buffer, compressBound(data.size));
 
     z_stream strm = { 0 };
-    strm.avail_in = data.size;
+    strm.avail_in = (u32)data.size;
     strm.next_in = data.data_u8;
 
-    strm.avail_out = buffer.size;
+    strm.avail_out = (u32)buffer.size;
     strm.next_out = buffer.data_u8;
 
     const int init = deflateInit(&strm, Z_BEST_COMPRESSION);
@@ -43,14 +46,17 @@ ConsBuffer DecompressZlib(ConsBufferView data, u64 decompressedSize) {
     if (!BufferViewIsValid(&data))
         return (ConsBuffer){ 0 };
 
+    if (data.size > 0xFFFFFFFF || decompressedSize > 0xFFFFFFFF)
+        return (ConsBuffer){ 0 };
+
     ConsBuffer buffer;
     BufferInit(&buffer, decompressedSize);
 
     z_stream strm = { 0 };
-    strm.avail_in = data.size;
+    strm.avail_in = (u32)data.size;
     strm.next_in = data.data_u8;
 
-    strm.avail_out = buffer.size;
+    strm.avail_out = (u32)buffer.size;
     strm.next_out = buffer.data_u8;
 
     const int init = inflateInit(&strm);
