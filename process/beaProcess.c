@@ -328,6 +328,9 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
     const u64 relocationTableOffset = binSize;
     binSize += sizeof(NnRelocTable) + sizeof(NnRelocSection) + (sizeof(NnRelocEntry) * relocationCount);
 
+    if (relocationTableOffset > 0xFFFFFFFF)
+        Panic("BeaBuild: reloc table offset exceeds max of 0xFFFFFFFF");
+
     const u64 memoryLoadSize = binSize;
 
     const u64 dataStartOffset = binSize;
@@ -452,7 +455,7 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
 
     stringPool->_00.signature = NN__STR_MAGIC;
     stringPool->_00.offsetToNextBlock = 0;
-    stringPool->_00.blockSize = stringPoolSize;
+    stringPool->_00.blockSize = (u32)stringPoolSize;
     stringPool->_00._reserved = 0x00000000;
 
     // Archive name & asset names. Empty string doesn't count.
@@ -463,7 +466,7 @@ ConsBuffer BeaBuild(const BeaBuildAsset* assets, u32 assetCount, const char* arc
     currentString->str[0] = '\0';
 
     currentString = (NnString*)(beaBuffer.data_u8 + archiveNameOffset);
-    currentString->len = strlen(archiveName);
+    currentString->len = (u16)strlen(archiveName);
     strcpy(currentString->str, archiveName);
 
     // Relocation table.
