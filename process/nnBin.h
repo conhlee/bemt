@@ -104,7 +104,7 @@ const NnDicNode* NnDicFind(void* baseData, const NnDic* dic, const char* key);
 
 static inline u32 NnDicNodeGetIndex(const NnDic* dic, const NnDicNode* node) {
     if (dic == NULL || node == NULL)
-        return 0;
+        return (u32)-1;
     return node - (dic->nodes + 1);
 }
 
